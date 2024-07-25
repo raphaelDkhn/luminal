@@ -1,0 +1,16 @@
+[package]
+name = "luminal_cairo"
+version = "0.1.0"
+edition = "2021"
+description = "Cairo compiler for luminal"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+luminal = { path = "../.." }
+cairo-vm = { git = "https://github.com/lambdaclass/cairo-vm.git", rev = "24c2349", features = [
+    "std",
+    "cairo-1-hints",
+] } #v1.0.0-rc6
+cairo-lang-sierra = { version = "2.7.0-rc.3", default-features = false }
+num-bigint = "0.4"
+num-traits = "0.2.19"
