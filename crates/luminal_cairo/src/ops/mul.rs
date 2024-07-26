@@ -1,13 +1,16 @@
-use crate::{cairo_runner::CairoRunner, CairoCompilerError};
+use crate::{cairo_runner::CairoRunnerConfig, CairoCompilerError};
 use luminal::prelude::*;
 use petgraph::visit::EdgeRef;
 use std::path::PathBuf;
+use std::sync::Arc;
+
+use super::CairoOperation;
 
 pub fn compile_mul(
     graph: &mut Graph,
     node: NodeIndex,
-    cairo_runner: &CairoRunner,
     sierra_file: PathBuf,
+    runner_config: Arc<CairoRunnerConfig>,
 ) -> Result<(), CairoCompilerError> {
     // Get incoming edges
     let inputs: Vec<_> = graph
@@ -21,24 +24,16 @@ pub fn compile_mul(
         ));
     }
 
-    let a: &Tensor = graph
-        .get_tensor_ref(inputs[0].0, inputs[0].1 .1)
-        .ok_or_else(|| CairoCompilerError::MissingTensor(inputs[0].0))?;
-    let a_shape = inputs[0].1 .2;
-
-    let b: &Tensor = graph
-        .get_tensor_ref(inputs[1].0, inputs[1].1 .1)
-        .ok_or_else(|| CairoCompilerError::MissingTensor(inputs[1].0))?;
-    let b_shape = inputs[1].1 .2;
-
-    let result = cairo_runner.run(sierra_file, vec![(a, a_shape), (b, b_shape)])?;
-
-    // Create a new node with the result
-    let mut new_op = graph.add_op(CairoOperation::new(result));
+    // Create a new node with CairoOperation
+    let mut new_op = graph.add_op(CairoOperation::new(
+        "mul".to_string(),
+        sierra_file,
+        runner_config,
+    ));
 
     // Connect the inputs to the new node
     for (input_node, (_, output_order, shape)) in &inputs {
-        new_op = new_op.input(*input_node, *output_order, *shape);
+        new_op = new_op.input(*input_node, *output_order, *shape)
     }
 
     // Finish creating the new node and get its NodeIndex
@@ -60,21 +55,4 @@ pub fn compile_mul(
     graph.remove_node(node);
 
     Ok(())
-}
-
-#[derive(Debug)]
-struct CairoOperation {
-    result: Tensor,
-}
-
-impl CairoOperation {
-    fn new(result: Tensor) -> Self {
-        Self { result }
-    }
-}
-
-impl Operator for CairoOperation {
-    fn process(&mut self, _inp: Vec<(InputTensor, ShapeTracker)>) -> Vec<Tensor> {
-        vec![self.result.clone()]
-    }
 }

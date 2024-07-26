@@ -49,6 +49,7 @@ impl FileWriter {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct CairoRunnerConfig {
     pub trace_file: Option<PathBuf>,
     pub memory_file: Option<PathBuf>,
@@ -73,7 +74,7 @@ impl CairoRunner {
         sierra_file: PathBuf,
         inputs: Vec<(&Tensor, ShapeTracker)>,
     ) -> Result<Tensor, CairoCompilerError> {
-        // load program
+        // Load program
         let program = self.load_sierra_file(sierra_file)?;
 
         // Serialize inputs
