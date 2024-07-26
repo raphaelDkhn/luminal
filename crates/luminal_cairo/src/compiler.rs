@@ -1,18 +1,18 @@
+use crate::cairo_runner::{CairoRunner, CairoRunnerConfig};
 use crate::ops::*;
-use crate::sierra_runner::SierraRunner;
 use crate::CairoCompilerError;
 use luminal::prelude::*;
 use std::path::PathBuf;
 
 pub struct CairoCompiler {
-    sierra_runner: SierraRunner,
+    cairo_runner: CairoRunner,
     sierra_files_path: PathBuf,
 }
 
 impl CairoCompiler {
-    pub fn new(sierra_files_path: PathBuf) -> Self {
+    pub fn new(sierra_files_path: PathBuf, config: CairoRunnerConfig) -> Self {
         Self {
-            sierra_runner: SierraRunner::new(),
+            cairo_runner: CairoRunner::new(config),
             sierra_files_path,
         }
     }
@@ -31,10 +31,10 @@ impl Compiler for CairoCompiler {
 
             if op.as_any().is::<Add>() {
                 let sierra_file = self.get_sierra_file("add");
-                compile_add(graph, node, &self.sierra_runner, sierra_file)?;
+                compile_add(graph, node, &self.cairo_runner, sierra_file)?;
             } else if op.as_any().is::<Mul>() {
                 let sierra_file = self.get_sierra_file("mul");
-                compile_mul(graph, node, &self.sierra_runner, sierra_file)?;
+                compile_mul(graph, node, &self.cairo_runner, sierra_file)?;
             }
         }
 

@@ -1,4 +1,4 @@
-use crate::{sierra_runner::SierraRunner, CairoCompilerError};
+use crate::{cairo_runner::CairoRunner, CairoCompilerError};
 use luminal::prelude::*;
 use petgraph::visit::EdgeRef;
 use std::path::PathBuf;
@@ -6,7 +6,7 @@ use std::path::PathBuf;
 pub fn compile_mul(
     graph: &mut Graph,
     node: NodeIndex,
-    sierra_runner: &SierraRunner,
+    cairo_runner: &CairoRunner,
     sierra_file: PathBuf,
 ) -> Result<(), CairoCompilerError> {
     // Get incoming edges
@@ -28,7 +28,7 @@ pub fn compile_mul(
         .get_tensor_ref(inputs[1].0, inputs[1].1 .1)
         .ok_or_else(|| CairoCompilerError::MissingTensor(inputs[1].0))?;
 
-    let result = sierra_runner.run_sierra(sierra_file, vec![a.clone(), b.clone()])?;
+    let result = cairo_runner.run(sierra_file, vec![a.clone(), b.clone()])?;
 
     // Create a new node with the result
     let mut new_op = graph.add_op(CairoOperation::new(result));
