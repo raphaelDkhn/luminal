@@ -25,6 +25,9 @@ pub enum CairoCompilerError {
     VmRunnerError(String),
     #[error("Trace encoding error: {0}")]
     TraceEncodingError(String),
+    #[error("Cairo output deserialization error: {0}")]
+    DeserializationError(String),
+
 }
 
 impl From<cairo1_run::error::Error> for CairoCompilerError {

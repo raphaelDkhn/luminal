@@ -20,15 +20,18 @@ pub fn compile_add(
             "Add operation must have exactly 2 inputs".to_string(),
         ));
     }
-
-    let a = graph
+    
+    let a: &Tensor = graph
         .get_tensor_ref(inputs[0].0, inputs[0].1 .1)
         .ok_or_else(|| CairoCompilerError::MissingTensor(inputs[0].0))?;
-    let b = graph
+    let a_shape = inputs[0].1.2;
+
+    let b: &Tensor = graph
         .get_tensor_ref(inputs[1].0, inputs[1].1 .1)
         .ok_or_else(|| CairoCompilerError::MissingTensor(inputs[1].0))?;
+    let b_shape = inputs[1].1.2;
 
-    let result = cairo_runner.run(sierra_file, vec![a.clone(), b.clone()])?;
+    let result = cairo_runner.run(sierra_file, vec![(a, a_shape), (b, b_shape)])?;
 
     // Create a new node with the result
     let mut new_op = graph.add_op(CairoOperation::new(result));
