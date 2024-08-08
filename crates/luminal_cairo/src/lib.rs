@@ -4,6 +4,7 @@ use luminal::prelude::*;
 mod compiler;
 mod ops;
 mod cairo_runner;
+mod fixed_point;
 
 #[derive(thiserror::Error, Debug)]
 pub enum CairoCompilerError {

@@ -10,10 +10,13 @@ use cairo_lang_sierra::program::{Program, VersionedProgram};
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
     vm::errors::trace_errors::TraceError, vm::runners::cairo_runner::CairoRunner as CairoVMRunner,
+    Felt252,
 };
 use luminal::prelude::*;
+use num_traits::FromPrimitive;
 use tracing::info;
 
+use crate::fixed_point::*;
 use crate::CairoCompilerError;
 
 struct FileWriter {
@@ -210,10 +213,13 @@ impl CairoRunner {
                 );
 
                 // Serialize data
-                let data_arg = match tensor.downcast_ref::<Vec<f32>>() {
-                    Some(_) => todo!(),
-                    None => todo!(),
-                };
+                let data_arg = FuncArg::Array(match tensor.downcast_ref::<Vec<f32>>() {
+                    Some(data) => data
+                        .into_iter()
+                        .map(|ele| Felt252::from_i64(from_float_to_fp(*ele)).unwrap())
+                        .collect(),
+                    None => vec![],
+                });
 
                 vec![shape_arg, data_arg]
             })
@@ -221,24 +227,31 @@ impl CairoRunner {
     }
 
     fn deserialize_output(&self, serialized_output: String) -> Result<Tensor, CairoCompilerError> {
-        // Parse the serialized output string
-        let parsed: Vec<f32> = serialized_output
-            .trim_matches(|c| c == '[' || c == ']')
-            .split(',')
+        // Split the input string into shape and data parts
+        let parts: Vec<&str> = serialized_output
+            .split(']')
+            .map(|s| s.trim_matches(|c| c == '[' || c == ']').trim())
+            .collect();
+
+        if parts.len() != 2 {
+            return Err(CairoCompilerError::DeserializationError(
+                "Input format incorrect".into(),
+            ));
+        }
+
+        // Parse data and convert from fixed point to floating point
+        let data: Vec<f32> = parts[1]
+            .split_whitespace()
             .map(|s| {
-                s.trim().parse().map_err(|_| {
-                    CairoCompilerError::DeserializationError("Failed to parse output".into())
-                })
+                s.parse::<i64>()
+                    .map_err(|_| {
+                        CairoCompilerError::DeserializationError("Failed to parse data".into())
+                    })
+                    .map(fp_to_float)
             })
             .collect::<Result<_, _>>()?;
 
-        // Assume the first element is the number of dimensions
-        let num_dims = parsed[0] as usize;
-
-        // The rest of the elements are the data
-        let data: Vec<f32> = parsed[num_dims + 1..].to_vec();
-
-        // Create a new Tensor
+        // Create a new Tensor with shape and data
         let tensor = Tensor::new(data);
 
         Ok(tensor)
