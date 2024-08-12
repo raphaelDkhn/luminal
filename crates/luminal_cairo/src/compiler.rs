@@ -26,7 +26,7 @@ impl CairoCompiler {
 impl Compiler for CairoCompiler {
     type Output = Result<(), CairoCompilerError>;
 
-    fn compile<To: ToIdsMut>(&self, graph: &mut Graph, _: To) -> Self::Output {
+    fn compile<To: ToIdsMut>(&self, graph: &mut Graph, mut ids: To) -> Self::Output {
         for node in graph.node_indices().collect::<Vec<_>>() {
             let op = graph.node_weight(node).unwrap();
 
@@ -35,6 +35,7 @@ impl Compiler for CairoCompiler {
                 compile_add(
                     graph,
                     node,
+                    &mut ids,
                     sierra_file,
                     Arc::new(self.runner_config.clone()),
                 )?;
@@ -43,6 +44,7 @@ impl Compiler for CairoCompiler {
                 compile_mul(
                     graph,
                     node,
+                    &mut ids,
                     sierra_file,
                     Arc::new(self.runner_config.clone()),
                 )?;

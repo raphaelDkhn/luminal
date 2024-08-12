@@ -1,7 +1,4 @@
-use luminal::{
-    prelude::*,
-    tests::{self, assert_close},
-};
+use luminal::{prelude::*, tests::assert_close};
 
 use crate::{cairo_runner::CairoRunnerConfig, compiler::CairoCompiler};
 
@@ -32,5 +29,5 @@ fn test_add() {
     let _ = cx.compile(cairo_compiler, &mut c);
     cx.execute();
 
-    // assert_close(&c.data(), &[11.0, 22.0, 33.0, 44.0])
+    assert_close(&c.data(), &[11.0, 22.0, 33.0, 44.0])
 }
