@@ -1,6 +1,7 @@
 use cairo_vm::air_public_input::PublicInputError;
 use luminal::prelude::*;
 
+mod constants;
 mod compiler;
 mod ops;
 mod cairo_runner;

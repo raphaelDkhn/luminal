@@ -11,9 +11,6 @@ fn test_add() {
     // Actual operations
     let mut c = (a + b).retrieve();
 
-    let compiled_programs =
-        "/Users/raphaeldoukhan/Desktop/Giza/Frameworks/luminal/crates/luminal_cairo/compiled_cairo";
-
     let config = CairoRunnerConfig {
         trace_file: None,
         memory_file: None,
@@ -24,7 +21,7 @@ fn test_add() {
         append_return_values: false,
     };
 
-    let cairo_compiler = CairoCompiler::new(compiled_programs.into(), config);
+    let cairo_compiler = CairoCompiler::new(config);
 
     let _ = cx.compile(cairo_compiler, &mut c);
     cx.execute();

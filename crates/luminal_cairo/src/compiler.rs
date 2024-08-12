@@ -1,25 +1,21 @@
 use crate::cairo_runner::CairoRunnerConfig;
+use crate::constants::COMPILED_CAIRO_PATH;
 use crate::ops::*;
 use crate::CairoCompilerError;
 use luminal::prelude::*;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 
 pub struct CairoCompiler {
-    sierra_files_path: PathBuf,
     runner_config: CairoRunnerConfig,
 }
 
 impl CairoCompiler {
-    pub fn new(sierra_files_path: PathBuf, config: CairoRunnerConfig) -> Self {
+    pub fn new(config: CairoRunnerConfig) -> Self {
         Self {
-            sierra_files_path,
             runner_config: config,
         }
-    }
-
-    fn get_sierra_file(&self, op_name: &str) -> PathBuf {
-        self.sierra_files_path.join(format!("{}.json", op_name))
     }
 }
 
@@ -31,7 +27,9 @@ impl Compiler for CairoCompiler {
             let op = graph.node_weight(node).unwrap();
 
             if op.as_any().is::<Add>() {
-                let sierra_file = self.get_sierra_file("add");
+                let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
+                    .unwrap()
+                    .join(format!("{}.json", "add"));
                 compile_add(
                     graph,
                     node,
@@ -40,7 +38,9 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             } else if op.as_any().is::<Mul>() {
-                let sierra_file = self.get_sierra_file("mul");
+                let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
+                    .unwrap()
+                    .join(format!("{}.json", "mul"));
                 compile_mul(
                     graph,
                     node,
