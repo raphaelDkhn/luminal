@@ -6,6 +6,9 @@ mod ops;
 mod cairo_runner;
 mod fixed_point;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(thiserror::Error, Debug)]
 pub enum CairoCompilerError {
     #[error("Failed to load Sierra file: {0}")]

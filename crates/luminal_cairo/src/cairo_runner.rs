@@ -200,7 +200,7 @@ impl CairoRunner {
     }
 
     fn serialize_inputs(&self, inputs: Vec<(&Tensor, ShapeTracker)>) -> Vec<FuncArg> {
-        inputs
+       inputs
             .into_iter()
             .flat_map(|(tensor, shape_tracker)| {
                 // Serialize shape
@@ -227,11 +227,11 @@ impl CairoRunner {
     }
 
     fn deserialize_output(&self, serialized_output: String) -> Result<Tensor, CairoCompilerError> {
-        // Split the input string into shape and data parts
-        let parts: Vec<&str> = serialized_output
-            .split(']')
-            .map(|s| s.trim_matches(|c| c == '[' || c == ']').trim())
-            .collect();
+        // Remove surrounding whitespace and brackets, then split into shape and data parts
+        let trimmed_output = serialized_output
+            .trim_matches(|c| c == '[' || c == ']')
+            .trim();
+        let parts: Vec<&str> = trimmed_output.split("] [").collect();
 
         if parts.len() != 2 {
             return Err(CairoCompilerError::DeserializationError(
