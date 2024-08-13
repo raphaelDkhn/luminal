@@ -1,1 +1,1 @@
-pub(crate) const COMPILED_CAIRO_PATH: &str = "./compiled_cairo";
+pub(crate) const COMPILED_CAIRO_PATH: &str = "./cairo_programs/compiled";
