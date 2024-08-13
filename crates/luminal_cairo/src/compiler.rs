@@ -29,7 +29,7 @@ impl Compiler for CairoCompiler {
             if op.as_any().is::<Add>() {
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.json", "add"));
+                    .join(format!("{}.sierra.json", "add"));
                 compile_add(
                     graph,
                     node,
@@ -40,7 +40,7 @@ impl Compiler for CairoCompiler {
             } else if op.as_any().is::<Mul>() {
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.json", "mul"));
+                    .join(format!("{}.sierra.json", "mul"));
                 compile_mul(
                     graph,
                     node,
