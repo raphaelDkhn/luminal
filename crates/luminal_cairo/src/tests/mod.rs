@@ -7,9 +7,9 @@ fn test_add() {
     let mut cx = Graph::new();
     let a = cx.tensor((2, 2)).set([[1.0, 2.0, 3.0, 4.0]]);
     let b = cx.tensor((2, 2)).set([[10.0, 20.0, 30.0, 40.0]]);
-
-    // Actual operations
-    let mut c = (a + b).retrieve();
+    let c = a + b;
+    let bias = cx.tensor((2, 2)).set([[1.0, 1.0, 1.0, 1.0]]);
+    let mut d = (c + bias).retrieve();
 
     let config = CairoRunnerConfig {
         trace_file: None,
@@ -23,8 +23,8 @@ fn test_add() {
 
     let cairo_compiler = CairoCompiler::new(config);
 
-    let _ = cx.compile(cairo_compiler, &mut c);
+    let _ = cx.compile(cairo_compiler, &mut d);
     cx.execute();
 
-    assert_close(&c.data(), &[11.0, 22.0, 33.0, 44.0])
+    assert_close(&d.data(), &[12.0, 23.0, 34.0, 45.0])
 }
