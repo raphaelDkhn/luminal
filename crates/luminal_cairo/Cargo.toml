@@ -7,12 +7,12 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 luminal = { path = "../.." }
-cairo-vm = { git = "https://github.com/lambdaclass/cairo-vm.git", rev = "24c2349", features = [
+cairo-vm = { git = "https://github.com/lambdaclass/cairo-vm.git", rev = "v1.0.1", features = [
     "std",
     "cairo-1-hints",
-] } #v1.0.0-rc6
-cairo1-run = { git = "https://github.com/lambdaclass/cairo-vm", rev = "24c2349" }
-cairo-lang-sierra = { version = "2.7.0-rc.3", default-features = false }
+] }
+cairo1-run = { git = "https://github.com/lambdaclass/cairo-vm", rev = "v1.0.1" }
+cairo-lang-sierra = { version = "2.7.0", default-features = false }
 num-bigint = "0.4"
 num-traits = "0.2.19"
 thiserror = "1.0.63"
