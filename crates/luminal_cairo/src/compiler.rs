@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
+#[derive(Default)]
 pub struct CairoCompiler {
     runner_config: CairoRunnerConfig,
 }

@@ -49,6 +49,10 @@ impl FileWriter {
     }
 }
 
+pub(crate) struct CairoRunner {
+    config: CairoRunnerConfig,
+}
+
 #[derive(Debug, Clone)]
 pub struct CairoRunnerConfig {
     pub trace_file: Option<PathBuf>,
@@ -60,8 +64,26 @@ pub struct CairoRunnerConfig {
     pub append_return_values: bool,
 }
 
-pub(crate) struct CairoRunner {
-    config: CairoRunnerConfig,
+impl Default for CairoRunnerConfig {
+    fn default() -> Self {
+        Self {
+            trace_file: None,
+            memory_file: None,
+            proof_mode: false,
+            air_public_input: None,
+            air_private_input: None,
+            cairo_pie_output: None,
+            append_return_values: false,
+        }
+    }
+}
+
+impl Default for CairoRunner {
+    fn default() -> Self {
+        Self {
+            config: CairoRunnerConfig::default(),
+        }
+    }
 }
 
 impl CairoRunner {
