@@ -60,16 +60,16 @@ pub struct CairoRunnerConfig {
     pub append_return_values: bool,
 }
 
-pub struct CairoRunner {
+pub(crate) struct CairoRunner {
     config: CairoRunnerConfig,
 }
 
 impl CairoRunner {
-    pub fn new(config: CairoRunnerConfig) -> Self {
+    pub(crate) fn new(config: CairoRunnerConfig) -> Self {
         Self { config }
     }
 
-    pub fn run(
+    pub(crate) fn run(
         &self,
         sierra_file: PathBuf,
         inputs: Vec<FuncArg>,
