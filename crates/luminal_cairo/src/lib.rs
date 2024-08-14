@@ -5,7 +5,7 @@ mod constants;
 mod compiler;
 mod ops;
 mod cairo_runner;
-mod fixed_point;
+pub(crate) mod utils;
 
 #[cfg(test)]
 mod tests;

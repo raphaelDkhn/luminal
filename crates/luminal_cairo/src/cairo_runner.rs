@@ -10,14 +10,11 @@ use cairo_lang_sierra::program::{Program, VersionedProgram};
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
     vm::errors::trace_errors::TraceError, vm::runners::cairo_runner::CairoRunner as CairoVMRunner,
-    Felt252,
 };
 use luminal::prelude::*;
-use num_traits::FromPrimitive;
 use tracing::info;
 
-use crate::fixed_point::*;
-use crate::CairoCompilerError;
+use crate::{utils::fixed_point::*, CairoCompilerError};
 
 struct FileWriter {
     buf_writer: io::BufWriter<std::fs::File>,
@@ -75,18 +72,15 @@ impl CairoRunner {
     pub fn run(
         &self,
         sierra_file: PathBuf,
-        inputs: Vec<(&Tensor, ShapeTracker)>,
+        inputs: Vec<FuncArg>,
     ) -> Result<Tensor, CairoCompilerError> {
         // Load program
         let program = self.load_sierra_file(sierra_file)?;
 
-        // Serialize inputs
-        let serialized_inputs = self.serialize_inputs(inputs);
-
         // Set up cairo runner config.
         let config = &self.config;
         let cairo_run_config = Cairo1RunConfig {
-            args: &serialized_inputs,
+            args: &inputs,
             serialize_output: true,
             trace_enabled: config.trace_file.is_some() || config.air_public_input.is_some(),
             relocate_mem: config.memory_file.is_some() || config.air_public_input.is_some(),
@@ -199,48 +193,14 @@ impl CairoRunner {
         Ok(())
     }
 
-    fn serialize_inputs(&self, inputs: Vec<(&Tensor, ShapeTracker)>) -> Vec<FuncArg> {
-       inputs
-            .into_iter()
-            .flat_map(|(tensor, shape_tracker)| {
-                // Serialize shape
-                let shape_arg = FuncArg::Array(
-                    shape_tracker
-                        .shape_usize()
-                        .into_iter()
-                        .map(|dim| dim.into())
-                        .collect(),
-                );
-
-                // Serialize data
-                let data_arg = FuncArg::Array(match tensor.downcast_ref::<Vec<f32>>() {
-                    Some(data) => data
-                        .into_iter()
-                        .map(|ele| Felt252::from_i64(from_float_to_fp(*ele)).unwrap())
-                        .collect(),
-                    None => vec![],
-                });
-
-                vec![shape_arg, data_arg]
-            })
-            .collect()
-    }
-
     fn deserialize_output(&self, serialized_output: String) -> Result<Tensor, CairoCompilerError> {
-        // Remove surrounding whitespace and brackets, then split into shape and data parts
+        // Remove surrounding brackets and whitespace
         let trimmed_output = serialized_output
             .trim_matches(|c| c == '[' || c == ']')
             .trim();
-        let parts: Vec<&str> = trimmed_output.split("] [").collect();
-
-        if parts.len() != 2 {
-            return Err(CairoCompilerError::DeserializationError(
-                "Input format incorrect".into(),
-            ));
-        }
 
         // Parse data and convert from fixed point to floating point
-        let data: Vec<f32> = parts[1]
+        let data: Vec<f32> = trimmed_output
             .split_whitespace()
             .map(|s| {
                 s.parse::<i64>()
@@ -251,9 +211,6 @@ impl CairoRunner {
             })
             .collect::<Result<_, _>>()?;
 
-        // Create a new Tensor with shape and data
-        let tensor = Tensor::new(data);
-
-        Ok(tensor)
+        Ok(Tensor::new(data))
     }
 }

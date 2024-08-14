@@ -12,12 +12,7 @@ dependencies = [
 [[package]]
 name = "orion_dl"
 version = "0.1.0"
-source = "git+https://github.com/gizatechxyz/orion?rev=5ed236784d3c7add2385b7c7bee394070a445130#5ed236784d3c7add2385b7c7bee394070a445130"
-dependencies = [
- "orion_numbers",
-]
 
 [[package]]
 name = "orion_numbers"
 version = "0.1.0"
-source = "git+https://github.com/gizatechxyz/orion?rev=5ed236784d3c7add2385b7c7bee394070a445130#5ed236784d3c7add2385b7c7bee394070a445130"

@@ -3,7 +3,8 @@ use luminal::prelude::*;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use super::CairoOperation;
+use super::{BinaryOpMetadata, CairoOperation, OpCategory};
+use crate::utils::shape::precompute_binary_op_metadata;
 
 pub fn compile_mul<To: ToIdsMut>(
     graph: &mut Graph,
@@ -20,12 +21,19 @@ pub fn compile_mul<To: ToIdsMut>(
         ));
     }
 
+    let (lhs_indices, rhs_indices) =
+        precompute_binary_op_metadata(&srcs[0].2.shape_usize(), &&srcs[1].2.shape_usize());
+
     // Create a new node with CairoOperation
     let new_op = graph
         .add_op(CairoOperation::new(
             "mul".to_string(),
             sierra_file,
             runner_config,
+            OpCategory::Binary(BinaryOpMetadata {
+                lhs_indices,
+                rhs_indices,
+            }),
         ))
         .input(srcs[0].0, srcs[0].1, srcs[0].2)
         .input(srcs[1].0, srcs[1].1, srcs[1].2)
