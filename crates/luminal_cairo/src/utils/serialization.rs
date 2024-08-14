@@ -3,7 +3,7 @@ use cairo_vm::Felt252;
 use luminal::prelude::*;
 use num_traits::FromPrimitive;
 
-use crate::{ops::BinaryOpMetadata, utils::fixed_point::*};
+use crate::{ops::binary::BinaryOpMetadata, utils::fixed_point::*};
 
 pub(crate) fn serialize_binary_op_inputs(
     inputs: Vec<(&Tensor, ShapeTracker)>,
@@ -15,22 +15,28 @@ pub(crate) fn serialize_binary_op_inputs(
     for (tensor, _) in inputs {
         let data_arg = FuncArg::Array(tensor.downcast_ref::<Vec<f32>>().map_or_else(
             || vec![],
-            |data| data.iter()
-                .map(|&ele| Felt252::from_i64(from_float_to_fp(ele)).unwrap())
-                .collect(),
+            |data| {
+                data.iter()
+                    .map(|&ele| Felt252::from_i64(from_float_to_fp(ele)).unwrap())
+                    .collect()
+            },
         ));
 
         serialized.push(data_arg);
     }
 
     let lhs_indices = FuncArg::Array(
-        metadata.lhs_indices.iter()
+        metadata
+            .lhs_indices
+            .iter()
             .map(|&ele| Felt252::from_i64(ele as i64).unwrap())
             .collect(),
     );
 
     let rhs_indices = FuncArg::Array(
-        metadata.rhs_indices.iter()
+        metadata
+            .rhs_indices
+            .iter()
             .map(|&ele| Felt252::from_i64(ele as i64).unwrap())
             .collect(),
     );

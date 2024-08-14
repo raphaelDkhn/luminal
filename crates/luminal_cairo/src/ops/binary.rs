@@ -1,33 +1,41 @@
-use crate::{cairo_runner::CairoRunnerConfig, CairoCompilerError};
 use luminal::prelude::*;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use super::{BinaryOpMetadata, CairoOperation, OpCategory};
+use super::{CairoOperation, OpCategory};
 use crate::utils::shape::precompute_binary_op_metadata;
+use crate::{cairo_runner::CairoRunnerConfig, CairoCompilerError};
 
-pub fn compile_mul<To: ToIdsMut>(
+#[derive(Debug)]
+pub(crate) struct BinaryOpMetadata {
+    pub(crate) lhs_indices: Vec<usize>,
+    pub(crate) rhs_indices: Vec<usize>,
+}
+
+pub(crate) fn compile_binary<To: ToIdsMut>(
     graph: &mut Graph,
     node: NodeIndex,
     ids: &mut To,
     sierra_file: PathBuf,
     runner_config: Arc<CairoRunnerConfig>,
+    op_name: &str,
 ) -> Result<(), CairoCompilerError> {
-    // Get sources (inputs) of the mul operation
+    // Get sources (inputs) of the add operation
     let srcs = graph.get_sources(node);
     if srcs.len() != 2 {
         return Err(CairoCompilerError::UnsupportedOperation(
-            "Mul operation must have exactly 2 inputs".to_string(),
+            "Binary operation must have exactly 2 inputs".to_string(),
         ));
     }
 
+    // Precompute indices to avoid computing it in Cairo run-time
     let (lhs_indices, rhs_indices) =
         precompute_binary_op_metadata(&srcs[0].2.shape_usize(), &&srcs[1].2.shape_usize());
 
     // Create a new node with CairoOperation
     let new_op = graph
         .add_op(CairoOperation::new(
-            "mul".to_string(),
+            op_name.to_string(),
             sierra_file,
             runner_config,
             OpCategory::Binary(BinaryOpMetadata {

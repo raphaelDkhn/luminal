@@ -1,21 +1,15 @@
-mod add;
-mod mul;
-
-pub use add::compile_add;
-pub use mul::compile_mul;
+pub(crate) mod binary;
 
 use crate::{
     cairo_runner::{CairoRunner, CairoRunnerConfig},
     utils::serialization::serialize_binary_op_inputs,
+    
 };
+
+use binary::BinaryOpMetadata;
 use luminal::prelude::*;
 use std::{path::PathBuf, sync::Arc};
 
-#[derive(Debug)]
-pub(crate) struct BinaryOpMetadata {
-    pub(crate) lhs_indices: Vec<usize>,
-    pub(crate) rhs_indices: Vec<usize>,
-}
 
 #[derive(Debug)]
 enum OpCategory {

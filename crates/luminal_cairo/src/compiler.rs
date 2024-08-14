@@ -1,7 +1,6 @@
 use crate::cairo_runner::CairoRunnerConfig;
 use crate::constants::COMPILED_CAIRO_PATH;
-use crate::ops::*;
-use crate::CairoCompilerError;
+use crate::{ops::binary::compile_binary, CairoCompilerError};
 use luminal::prelude::*;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -30,23 +29,25 @@ impl Compiler for CairoCompiler {
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
                     .join(format!("{}.sierra.json", "add"));
-                compile_add(
+                compile_binary(
                     graph,
                     node,
                     &mut ids,
                     sierra_file,
                     Arc::new(self.runner_config.clone()),
+                    "add",
                 )?;
             } else if op.as_any().is::<Mul>() {
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
                     .join(format!("{}.sierra.json", "mul"));
-                compile_mul(
+                compile_binary(
                     graph,
                     node,
                     &mut ids,
                     sierra_file,
                     Arc::new(self.runner_config.clone()),
+                    "mul",
                 )?;
             }
         }
