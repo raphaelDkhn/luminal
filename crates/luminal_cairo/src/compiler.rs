@@ -59,6 +59,17 @@ impl Compiler for CairoCompiler {
                     sierra_file,
                     Arc::new(self.runner_config.clone()),
                 )?;
+            } else if op.as_any().is::<LessThan>() {
+                let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
+                    .unwrap()
+                    .join(format!("{}.sierra.json", "lt"));
+                compile_binary(
+                    graph,
+                    node,
+                    &mut ids,
+                    sierra_file,
+                    Arc::new(self.runner_config.clone()),
+                )?;
             }
         }
 
