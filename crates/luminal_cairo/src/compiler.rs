@@ -1,5 +1,6 @@
 use crate::cairo_runner::CairoRunnerConfig;
 use crate::constants::COMPILED_CAIRO_PATH;
+use crate::ops::unary::compile_unary;
 use crate::{ops::binary::compile_binary, CairoCompilerError};
 use luminal::prelude::*;
 use std::path::PathBuf;
@@ -26,6 +27,7 @@ impl Compiler for CairoCompiler {
         for node in graph.node_indices().collect::<Vec<_>>() {
             let op = graph.node_weight(node).unwrap();
 
+            // Binary
             if op.as_any().is::<Add>() {
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
@@ -64,6 +66,19 @@ impl Compiler for CairoCompiler {
                     .unwrap()
                     .join(format!("{}.sierra.json", "lt"));
                 compile_binary(
+                    graph,
+                    node,
+                    &mut ids,
+                    sierra_file,
+                    Arc::new(self.runner_config.clone()),
+                )?;
+            }
+            // Unary
+            else if op.as_any().is::<Log2>() {
+                let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
+                    .unwrap()
+                    .join(format!("{}.sierra.json", "log2"));
+                compile_unary(
                     graph,
                     node,
                     &mut ids,

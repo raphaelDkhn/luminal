@@ -1,8 +1,9 @@
 pub(crate) mod binary;
+pub(crate) mod unary;
 
 use crate::{
     cairo_runner::{CairoRunner, CairoRunnerConfig},
-    utils::serialization::serialize_binary_op_inputs,
+    utils::serialization::{serialize_binary_op_inputs, serialize_unary_op_inputs},
 };
 
 use binary::BinaryOpMetadata;
@@ -12,6 +13,7 @@ use std::{path::PathBuf, sync::Arc};
 #[derive(Debug)]
 enum OpCategory {
     Binary(BinaryOpMetadata),
+    Unary(),
 }
 
 #[derive(Debug)]
@@ -46,6 +48,7 @@ impl Operator for CairoOperation {
 
         let inputs = match &self.op_category {
             OpCategory::Binary(metadata) => serialize_binary_op_inputs(inputs, metadata),
+            OpCategory::Unary() => serialize_unary_op_inputs(inputs),
         };
 
         match cairo_runner.run(self.sierra_file.clone(), inputs) {
