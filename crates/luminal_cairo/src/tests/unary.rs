@@ -57,3 +57,17 @@ fn test_sqrt() {
 
     assert_close(&b.data(), &[1., 1.41421356, 1.73205081, 2.])
 }
+
+#[test]
+fn test_recip() {
+    let mut cx = Graph::new();
+    let a = cx.tensor((2, 2)).set([[1.0, 2.0, 3.0, 4.0]]);
+    let mut b = a.recip().retrieve();
+
+    let cairo_compiler = CairoCompiler::default();
+
+    let _ = cx.compile(cairo_compiler, &mut b);
+    cx.execute();
+
+    assert_close(&b.data(), &[1., 0.5, 0.33333333, 0.25])
+}
