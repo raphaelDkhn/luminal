@@ -29,3 +29,17 @@ fn test_exp2() {
 
     assert_close(&b.data(), &[2., 4., 8., 16.])
 }
+
+#[test]
+fn test_sin() {
+    let mut cx = Graph::new();
+    let a = cx.tensor((2, 2)).set([[1.0, 2.0, 3.0, 4.0]]);
+    let mut b = a.sin().retrieve();
+
+    let cairo_compiler = CairoCompiler::default();
+
+    let _ = cx.compile(cairo_compiler, &mut b);
+    cx.execute();
+
+    assert_close(&b.data(), &[0.84147098, 0.90929743, 0.14112001, -0.7568025])
+}
