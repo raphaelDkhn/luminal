@@ -3,13 +3,11 @@ pub(crate) mod binary;
 use crate::{
     cairo_runner::{CairoRunner, CairoRunnerConfig},
     utils::serialization::serialize_binary_op_inputs,
-    
 };
 
 use binary::BinaryOpMetadata;
 use luminal::prelude::*;
 use std::{path::PathBuf, sync::Arc};
-
 
 #[derive(Debug)]
 enum OpCategory {
@@ -18,7 +16,6 @@ enum OpCategory {
 
 #[derive(Debug)]
 struct CairoOperation {
-    op_name: String,
     sierra_file: PathBuf,
     runner_config: Arc<CairoRunnerConfig>,
     op_category: OpCategory,
@@ -26,13 +23,11 @@ struct CairoOperation {
 
 impl CairoOperation {
     fn new(
-        op_name: String,
         sierra_file: PathBuf,
         runner_config: Arc<CairoRunnerConfig>,
         op_category: OpCategory,
     ) -> Self {
         Self {
-            op_name,
             sierra_file,
             runner_config,
             op_category,
@@ -56,7 +51,7 @@ impl Operator for CairoOperation {
         match cairo_runner.run(self.sierra_file.clone(), inputs) {
             Ok(result) => vec![result],
             Err(e) => {
-                panic!("Error executing Cairo operation {}: {:?}", self.op_name, e);
+                panic!("Error executing Cairo: {:?}", e);
             }
         }
     }

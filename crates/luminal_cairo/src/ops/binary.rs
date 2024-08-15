@@ -18,7 +18,6 @@ pub(crate) fn compile_binary<To: ToIdsMut>(
     ids: &mut To,
     sierra_file: PathBuf,
     runner_config: Arc<CairoRunnerConfig>,
-    op_name: &str,
 ) -> Result<(), CairoCompilerError> {
     // Get sources (inputs) of the add operation
     let srcs = graph.get_sources(node);
@@ -35,7 +34,6 @@ pub(crate) fn compile_binary<To: ToIdsMut>(
     // Create a new node with CairoOperation
     let new_op = graph
         .add_op(CairoOperation::new(
-            op_name.to_string(),
             sierra_file,
             runner_config,
             OpCategory::Binary(BinaryOpMetadata {

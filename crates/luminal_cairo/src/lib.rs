@@ -1,10 +1,10 @@
 use cairo_vm::air_public_input::PublicInputError;
 use luminal::prelude::*;
 
-mod constants;
-mod compiler;
-mod ops;
 mod cairo_runner;
+mod compiler;
+mod constants;
+mod ops;
 pub(crate) mod utils;
 
 #[cfg(test)]
@@ -32,7 +32,6 @@ pub enum CairoCompilerError {
     TraceEncodingError(String),
     #[error("Cairo output deserialization error: {0}")]
     DeserializationError(String),
-
 }
 
 impl From<cairo1_run::error::Error> for CairoCompilerError {

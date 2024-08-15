@@ -36,7 +36,6 @@ impl Compiler for CairoCompiler {
                     &mut ids,
                     sierra_file,
                     Arc::new(self.runner_config.clone()),
-                    "add",
                 )?;
             } else if op.as_any().is::<Mul>() {
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
@@ -48,7 +47,17 @@ impl Compiler for CairoCompiler {
                     &mut ids,
                     sierra_file,
                     Arc::new(self.runner_config.clone()),
-                    "mul",
+                )?;
+            } else if op.as_any().is::<Mod>() {
+                let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
+                    .unwrap()
+                    .join(format!("{}.sierra.json", "rem"));
+                compile_binary(
+                    graph,
+                    node,
+                    &mut ids,
+                    sierra_file,
+                    Arc::new(self.runner_config.clone()),
                 )?;
             }
         }
