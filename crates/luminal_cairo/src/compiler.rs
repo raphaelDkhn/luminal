@@ -107,6 +107,17 @@ impl Compiler for CairoCompiler {
                     sierra_file,
                     Arc::new(self.runner_config.clone()),
                 )?;
+            } else if op.as_any().is::<Sqrt>() {
+                let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
+                    .unwrap()
+                    .join(format!("{}.sierra.json", "sqrt"));
+                compile_unary(
+                    graph,
+                    node,
+                    &mut ids,
+                    sierra_file,
+                    Arc::new(self.runner_config.clone()),
+                )?;
             }
         }
 
