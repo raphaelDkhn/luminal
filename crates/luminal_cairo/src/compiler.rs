@@ -1,5 +1,6 @@
 use crate::cairo_runner::CairoRunnerConfig;
 use crate::constants::COMPILED_CAIRO_PATH;
+use crate::ops::reduce::compile_reduce;
 use crate::ops::unary::compile_unary;
 use crate::{ops::binary::compile_binary, CairoCompilerError};
 use luminal::prelude::*;
@@ -123,6 +124,19 @@ impl Compiler for CairoCompiler {
                     .unwrap()
                     .join(format!("{}.sierra.json", "recip"));
                 compile_unary(
+                    graph,
+                    node,
+                    &mut ids,
+                    sierra_file,
+                    Arc::new(self.runner_config.clone()),
+                )?;
+            }
+            // Reduce
+            else if op.as_any().is::<SumReduce>() {
+                let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
+                    .unwrap()
+                    .join(format!("{}.sierra.json", "sum_reduce_nd"));
+                compile_reduce(
                     graph,
                     node,
                     &mut ids,

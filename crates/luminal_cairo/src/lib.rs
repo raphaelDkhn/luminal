@@ -3,6 +3,7 @@ use luminal::prelude::*;
 
 mod cairo_runner;
 mod compiler;
+mod precomputing;
 mod constants;
 mod ops;
 pub(crate) mod utils;

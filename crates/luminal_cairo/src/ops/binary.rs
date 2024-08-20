@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use super::{CairoOperation, OpCategory};
-use crate::utils::shape::precompute_binary_op_metadata;
+use crate::precomputing::binary::precompute_binary_op_metadata;
 use crate::{cairo_runner::CairoRunnerConfig, CairoCompilerError};
 
 #[derive(Debug)]

@@ -1,9 +1,11 @@
 use std::iter;
 
-pub(crate) fn compute_reduce_op_metadata(
+use crate::ops::reduce::ReduceOpMetadata;
+
+pub(crate) fn precompute_reduce_op_metadata(
     input_shape: &[usize],
     axis: usize,
-) -> (Vec<usize>, usize) {
+) -> ReduceOpMetadata {
     let input_rank = input_shape.len();
     assert!(axis < input_rank, "Axis out of bounds");
 
@@ -44,7 +46,10 @@ pub(crate) fn compute_reduce_op_metadata(
         }
     }
 
-    (output_indices, output_size)
+    ReduceOpMetadata {
+        output_indices,
+        output_size,
+    }
 }
 
 #[cfg(test)]
@@ -55,46 +60,46 @@ mod tests {
     fn test_1d_tensor() {
         let input_shape = vec![5];
         let axis = 0;
-        let (output_indices, output_size) = compute_reduce_op_metadata(&input_shape, axis);
-        assert_eq!(output_size, 1);
-        assert_eq!(output_indices, vec![0, 0, 0, 0, 0]);
+        let res = precompute_reduce_op_metadata(&input_shape, axis);
+        assert_eq!(res.output_size, 1);
+        assert_eq!(res.output_indices, vec![0, 0, 0, 0, 0]);
     }
 
     #[test]
     fn test_2d_tensor() {
         let input_shape = vec![2, 3];
         let axis = 1;
-        let (output_indices, output_size) = compute_reduce_op_metadata(&input_shape, axis);
-        assert_eq!(output_size, 2);
-        assert_eq!(output_indices, vec![0, 0, 0, 1, 1, 1]);
+        let res = precompute_reduce_op_metadata(&input_shape, axis);
+        assert_eq!(res.output_size, 2);
+        assert_eq!(res.output_indices, vec![0, 0, 0, 1, 1, 1]);
     }
 
     #[test]
     fn test_3d_tensor_axis0() {
         let input_shape = vec![2, 2, 2];
         let axis = 0;
-        let (output_indices, output_size) = compute_reduce_op_metadata(&input_shape, axis);
-        assert_eq!(output_size, 4);
-        assert_eq!(output_indices, vec![0, 1, 2, 3, 0, 1, 2, 3]);
+        let res = precompute_reduce_op_metadata(&input_shape, axis);
+        assert_eq!(res.output_size, 4);
+        assert_eq!(res.output_indices, vec![0, 1, 2, 3, 0, 1, 2, 3]);
     }
 
     #[test]
     fn test_3d_tensor_axis1() {
         let input_shape = vec![2, 3, 2];
         let axis = 1;
-        let (output_indices, output_size) = compute_reduce_op_metadata(&input_shape, axis);
-        assert_eq!(output_size, 4);
-        assert_eq!(output_indices, vec![0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3]);
+        let res = precompute_reduce_op_metadata(&input_shape, axis);
+        assert_eq!(res.output_size, 4);
+        assert_eq!(res.output_indices, vec![0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3]);
     }
 
     #[test]
     fn test_4d_tensor() {
         let input_shape = vec![2, 2, 3, 2];
         let axis = 2;
-        let (output_indices, output_size) = compute_reduce_op_metadata(&input_shape, axis);
-        assert_eq!(output_size, 8);
+        let res = precompute_reduce_op_metadata(&input_shape, axis);
+        assert_eq!(res.output_size, 8);
         assert_eq!(
-            output_indices,
+            res.output_indices,
             vec![0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3, 4, 5, 4, 5, 4, 5, 6, 7, 6, 7, 6, 7]
         );
     }
