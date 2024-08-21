@@ -52,7 +52,7 @@ impl Operator for CairoOperation {
         let inputs = match &self.op_category {
             OpCategory::Binary(metadata) => serialize_binary_op_inputs(inputs, metadata),
             OpCategory::Unary() => serialize_unary_op_inputs(inputs),
-            OpCategory::Reduce(_) => todo!(),
+            OpCategory::Reduce(_) => serialize_unary_op_inputs(inputs),
         };
 
         match cairo_runner.run(self.sierra_file.clone(), inputs) {

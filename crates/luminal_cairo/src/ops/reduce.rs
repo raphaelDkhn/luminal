@@ -16,22 +16,14 @@ pub(crate) struct ReduceOpMetadata {
 
 pub(crate) fn compile_reduce<To: ToIdsMut>(
     graph: &mut Graph,
+    srcs: &Vec<(NodeIndex, u8, ShapeTracker)>,
     node: NodeIndex,
     ids: &mut To,
     sierra_file: PathBuf,
     runner_config: Arc<CairoRunnerConfig>,
+    axis: usize,
+    shape: &Vec<usize>,
 ) -> Result<(), CairoCompilerError> {
-    // Get sources (inputs) of the reduce operation
-    let srcs = graph.get_sources(node);
-    if srcs.len() != 1 {
-        return Err(CairoCompilerError::UnsupportedOperation(
-            "Unary operation must have exactly 1 input".to_string(),
-        ));
-    }
-
-    let shape = srcs[0].2.shape_usize();
-    let axis = 1;
-
     let metadata: Option<ReduceOpMetadata> = if shape.len() == 1 {
         None
     } else {

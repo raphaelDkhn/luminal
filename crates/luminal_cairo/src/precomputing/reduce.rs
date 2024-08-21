@@ -1,5 +1,3 @@
-use std::iter;
-
 use crate::ops::reduce::ReduceOpMetadata;
 
 pub(crate) fn precompute_reduce_op_metadata(
