@@ -5,7 +5,9 @@ use std::{
 };
 
 use bincode::enc::write::Writer;
-use cairo1_run::{cairo_run_program, error::Error, Cairo1RunConfig, FuncArg};
+use cairo1_run::{
+    cairo_run_program, error::Error, Cairo1RunConfig, FuncArg, MaybeRelocatable, VirtualMachine,
+};
 use cairo_lang_sierra::program::{Program, VersionedProgram};
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
@@ -114,15 +116,59 @@ impl CairoRunner {
         };
 
         // Run the program
-        let (runner, _, serialized_output) = cairo_run_program(&program, cairo_run_config)?;
+        let (runner, return_values, _) = cairo_run_program(&program, cairo_run_config)?;
 
         // Generate output files (trace, memory, cairopie files)
         self.generate_output_files(&runner)?;
 
-        // Deserialize the output
-        let output_tensor = self.deserialize_output(serialized_output.unwrap())?;
+        // Fetch the actual data from memory
+        let data = self.fetch_data_from_memory(&runner.vm, &return_values)?;
 
-        Ok(output_tensor)
+        Ok(Tensor::new(data))
+    }
+
+    fn fetch_data_from_memory(
+        &self,
+        vm: &VirtualMachine,
+        return_values: &[MaybeRelocatable],
+    ) -> Result<Vec<f32>, CairoCompilerError> {
+        if return_values.len() != 2 {
+            return Err(CairoCompilerError::RuntimeError(
+                "Expected 2 return values (start and end pointers)".to_string(),
+            ));
+        }
+
+        let start = return_values[0]
+            .get_relocatable()
+            .ok_or_else(|| CairoCompilerError::RuntimeError("Invalid start pointer".to_string()))?;
+        let end = return_values[1]
+            .get_relocatable()
+            .ok_or_else(|| CairoCompilerError::RuntimeError("Invalid end pointer".to_string()))?;
+
+        let size = (end - start).map_err(|e| CairoCompilerError::RuntimeError(e.to_string()))?;
+
+        let memory_data = vm
+            .get_continuous_range(start, size)
+            .map_err(|e| CairoCompilerError::RuntimeError(e.to_string()))?;
+
+        // Convert the memory data to f32
+        let data: Result<Vec<f32>, CairoCompilerError> = memory_data
+            .into_iter()
+            .map(|v| match v {
+                MaybeRelocatable::Int(felt) => {
+                    let x = felt_fp_to_float(&felt.to_bigint()).ok_or_else(|| {
+                        CairoCompilerError::RuntimeError(format!("Failed to parse bigint as float"))
+                    });
+
+                    x
+                }
+                _ => Err(CairoCompilerError::RuntimeError(
+                    "Unexpected relocatable value in output".to_string(),
+                )),
+            })
+            .collect();
+
+        data
     }
 
     fn load_sierra_file(&self, file_path: PathBuf) -> Result<Program, CairoCompilerError> {
@@ -213,26 +259,5 @@ impl CairoRunner {
         }
 
         Ok(())
-    }
-
-    fn deserialize_output(&self, serialized_output: String) -> Result<Tensor, CairoCompilerError> {
-        // Remove surrounding brackets and whitespace
-        let trimmed_output = serialized_output
-            .trim_matches(|c| c == '[' || c == ']')
-            .trim();
-
-        // Parse data and convert from fixed point to floating point
-        let data: Vec<f32> = trimmed_output
-            .split_whitespace()
-            .map(|s| {
-                s.parse::<i64>()
-                    .map_err(|_| {
-                        CairoCompilerError::DeserializationError("Failed to parse data".into())
-                    })
-                    .map(fp_to_float)
-            })
-            .collect::<Result<_, _>>()?;
-
-        Ok(Tensor::new(data))
     }
 }

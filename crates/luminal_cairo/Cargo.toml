@@ -21,3 +21,4 @@ tracing = "0.1.40"
 bincode = { version = "2.0.0-rc.3", default-features = false, features = [
     "serde",
 ] }
+lazy_static = "1.5.0"
