@@ -204,6 +204,20 @@ impl Compiler for CairoCompiler {
                     axis,
                     &shape,
                 )?;
+            } else if op.as_any().is::<Contiguous>() {
+                let srcs = graph.get_sources(node);
+                let new_op = graph
+                    .add_op(luminal::op::Contiguous)
+                    .input(srcs[0].0, srcs[0].1, srcs[0].2)
+                    .finish();
+
+                move_outgoing_edge(node, new_op, graph);
+
+                remap(node, new_op, &mut ids, graph);
+
+                graph.remove_node(node);
+
+                continue;
             }
         }
 
