@@ -1,5 +1,6 @@
-use itertools::Itertools;
+use num_bigint::BigInt;
 use std::{
+    collections::HashMap,
     fs,
     io::{self, Write},
     path::PathBuf,
@@ -98,6 +99,7 @@ impl CairoRunner {
         &self,
         sierra_file: PathBuf,
         inputs: Vec<FuncArg>,
+        returns_dict: bool,
     ) -> Result<Tensor, CairoCompilerError> {
         // Load program
         let program = self.load_sierra_file(sierra_file)?;
@@ -123,8 +125,11 @@ impl CairoRunner {
         self.generate_output_files(&runner)?;
 
         // Fetch the actual data from memory
-        let data = self.fetch_data_from_memory_dict(&runner.vm, &return_values)?;
-        // let data = self.fetch_data_from_memory(&runner.vm, &return_values)?;
+        let data = if returns_dict {
+            self.fetch_data_from_memory_dict(&runner.vm, &return_values)?
+        } else {
+            self.fetch_data_from_memory_arr(&runner.vm, &return_values)?
+        };
 
         Ok(Tensor::new(data))
     }
@@ -134,59 +139,58 @@ impl CairoRunner {
         vm: &VirtualMachine,
         return_values: &[MaybeRelocatable],
     ) -> Result<Vec<f32>, CairoCompilerError> {
-        let mut return_values_iter = return_values.into_iter().peekable();
+        let dict_ptr = return_values[0].get_relocatable().ok_or_else(|| {
+            CairoCompilerError::RuntimeError("Invalid dictionary pointer".to_string())
+        })?;
 
-        let dict_ptr = return_values_iter
-            .next()
-            .expect("Missing return val")
-            .get_relocatable()
-            .expect("Dict Ptr not Relocatable");
-
-        if !(dict_ptr.offset
-            == vm
-                .get_segment_size(dict_ptr.segment_index as usize)
-                .unwrap_or_default()
-            && dict_ptr.offset % 3 == 0)
-        {
-            panic!("Return value is not a valid Felt252Dict")
-        }
-
-        // Fetch the dictionary's memory
         let dict_mem = vm
             .get_continuous_range((dict_ptr.segment_index, 0).into(), dict_ptr.offset)
-            .expect("Malformed dictionary memory");
+            .map_err(|e| {
+                CairoCompilerError::RuntimeError(format!(
+                    "Failed to fetch dictionary memory: {}",
+                    e
+                ))
+            })?;
 
-        let mut data: Vec<f32> = vec![];
+        let mut data: Vec<f32> = Vec::new();
+        let mut last_values: HashMap<BigInt, f32> = HashMap::new();
 
-        // println!("Dict Mem: {:?}", dict_mem);
-        // The dictionary's memory is made up of (key, prev_value, next_value) tuples.
-        // The keys and prev values are not relevant here so we can skip them over.
-        for (key, prev_value, value) in dict_mem.iter().tuples() {
-            println!("Key: {:?}", key);
-            println!("Prev_value: {:?}", prev_value);
-            println!("value: {:?}", value);
+        for chunk in dict_mem.chunks(3) {
+            if let [key, _, value] = chunk {
+                let key = match key {
+                    MaybeRelocatable::Int(felt) => felt.to_bigint(),
+                    _ => continue, // Skip non-integer keys
+                };
 
-            match value {
-                MaybeRelocatable::Int(felt) => {
-                    let x = felt_fp_to_float(&felt.to_bigint()).ok_or_else(|| {
-                        CairoCompilerError::RuntimeError(format!("Failed to parse bigint as float"))
-                    });
+                let float_value = match value {
+                    MaybeRelocatable::Int(felt) => felt_fp_to_float(&felt.to_bigint()),
+                    MaybeRelocatable::RelocatableValue(ptr) => {
+                        if let Some(MaybeRelocatable::Int(value_felt)) = vm.get_maybe(ptr) {
+                            felt_fp_to_float(&value_felt.to_bigint())
+                        } else {
+                            None
+                        }
+                    }
+                };
 
-                    data.push(x.unwrap());
-                }
-                _ => {
-                    continue;
-                    // return Err(CairoCompilerError::RuntimeError(
-                    //     "Unexpected relocatable value in output".to_string(),
-                    // ))
+                if let Some(float_value) = float_value {
+                    last_values.insert(key, float_value);
                 }
             }
+        }
+
+        // Sort the keys to ensure consistent ordering
+        let mut sorted_keys: Vec<_> = last_values.keys().collect();
+        sorted_keys.sort();
+
+        for key in sorted_keys {
+            data.push(last_values[key]);
         }
 
         Ok(data)
     }
 
-    fn fetch_data_from_memory(
+    fn fetch_data_from_memory_arr(
         &self,
         vm: &VirtualMachine,
         return_values: &[MaybeRelocatable],

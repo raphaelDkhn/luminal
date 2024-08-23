@@ -51,11 +51,14 @@ impl Operator for CairoOperation {
             .map(|(input, shape)| (input.borrowed(), *shape))
             .collect();
 
+        let mut returns_dict = false;
+
         let inputs = match &self.op_category {
             OpCategory::Binary(metadata) => serialize_inputs_binary_op(inputs, metadata),
             OpCategory::Unary() => serialize_inputs_element_wise(inputs),
             OpCategory::Reduce(metadata) => {
                 if let Some(meta) = metadata.as_ref() {
+                    returns_dict = true;
                     serialize_inputs_reduce_nd(inputs, meta)
                 } else {
                     serialize_inputs_element_wise(inputs)
@@ -63,7 +66,7 @@ impl Operator for CairoOperation {
             }
         };
 
-        match cairo_runner.run(self.sierra_file.clone(), inputs) {
+        match cairo_runner.run(self.sierra_file.clone(), inputs, returns_dict) {
             Ok(result) => vec![result],
             Err(e) => {
                 panic!("Error executing Cairo: {:?}", e);
