@@ -168,6 +168,42 @@ impl Compiler for CairoCompiler {
                     axis,
                     &shape,
                 )?;
+            } else if op.as_any().is::<MaxReduce>() {
+                let axis = op
+                    .as_any()
+                    .downcast_ref::<MaxReduce>()
+                    .map(|sum_reduce| sum_reduce.0)
+                    .unwrap();
+
+                let srcs = graph.get_sources(node);
+                if srcs.len() != 1 {
+                    return Err(CairoCompilerError::UnsupportedOperation(
+                        "Unary operation must have exactly 1 input".to_string(),
+                    ));
+                }
+
+                let shape: Vec<usize> = srcs[0].2.shape_usize();
+
+                let sierra_file = if shape.len() == 1 {
+                    PathBuf::from_str(COMPILED_CAIRO_PATH)
+                        .unwrap()
+                        .join(format!("{}.sierra.json", "max_reduce_1d"))
+                } else {
+                    PathBuf::from_str(COMPILED_CAIRO_PATH)
+                        .unwrap()
+                        .join(format!("{}.sierra.json", "max_reduce_nd"))
+                };
+
+                compile_reduce(
+                    graph,
+                    &srcs,
+                    node,
+                    &mut ids,
+                    sierra_file,
+                    Arc::new(self.runner_config.clone()),
+                    axis,
+                    &shape,
+                )?;
             }
         }
 
