@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::{
     fs,
     io::{self, Write},
@@ -122,9 +123,67 @@ impl CairoRunner {
         self.generate_output_files(&runner)?;
 
         // Fetch the actual data from memory
-        let data = self.fetch_data_from_memory(&runner.vm, &return_values)?;
+        let data = self.fetch_data_from_memory_dict(&runner.vm, &return_values)?;
+        // let data = self.fetch_data_from_memory(&runner.vm, &return_values)?;
 
         Ok(Tensor::new(data))
+    }
+
+    fn fetch_data_from_memory_dict(
+        &self,
+        vm: &VirtualMachine,
+        return_values: &[MaybeRelocatable],
+    ) -> Result<Vec<f32>, CairoCompilerError> {
+        let mut return_values_iter = return_values.into_iter().peekable();
+
+        let dict_ptr = return_values_iter
+            .next()
+            .expect("Missing return val")
+            .get_relocatable()
+            .expect("Dict Ptr not Relocatable");
+
+        if !(dict_ptr.offset
+            == vm
+                .get_segment_size(dict_ptr.segment_index as usize)
+                .unwrap_or_default()
+            && dict_ptr.offset % 3 == 0)
+        {
+            panic!("Return value is not a valid Felt252Dict")
+        }
+
+        // Fetch the dictionary's memory
+        let dict_mem = vm
+            .get_continuous_range((dict_ptr.segment_index, 0).into(), dict_ptr.offset)
+            .expect("Malformed dictionary memory");
+
+        let mut data: Vec<f32> = vec![];
+
+        // println!("Dict Mem: {:?}", dict_mem);
+        // The dictionary's memory is made up of (key, prev_value, next_value) tuples.
+        // The keys and prev values are not relevant here so we can skip them over.
+        for (key, prev_value, value) in dict_mem.iter().tuples() {
+            println!("Key: {:?}", key);
+            println!("Prev_value: {:?}", prev_value);
+            println!("value: {:?}", value);
+
+            match value {
+                MaybeRelocatable::Int(felt) => {
+                    let x = felt_fp_to_float(&felt.to_bigint()).ok_or_else(|| {
+                        CairoCompilerError::RuntimeError(format!("Failed to parse bigint as float"))
+                    });
+
+                    data.push(x.unwrap());
+                }
+                _ => {
+                    continue;
+                    // return Err(CairoCompilerError::RuntimeError(
+                    //     "Unexpected relocatable value in output".to_string(),
+                    // ))
+                }
+            }
+        }
+
+        Ok(data)
     }
 
     fn fetch_data_from_memory(

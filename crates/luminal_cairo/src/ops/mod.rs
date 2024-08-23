@@ -4,7 +4,9 @@ pub(crate) mod unary;
 
 use crate::{
     cairo_runner::{CairoRunner, CairoRunnerConfig},
-    utils::serialization::{serialize_binary_op_inputs, serialize_unary_op_inputs},
+    utils::serialization::{
+        serialize_inputs_binary_op, serialize_inputs_element_wise, serialize_inputs_reduce_nd,
+    },
 };
 
 use binary::BinaryOpMetadata;
@@ -50,9 +52,15 @@ impl Operator for CairoOperation {
             .collect();
 
         let inputs = match &self.op_category {
-            OpCategory::Binary(metadata) => serialize_binary_op_inputs(inputs, metadata),
-            OpCategory::Unary() => serialize_unary_op_inputs(inputs),
-            OpCategory::Reduce(_) => serialize_unary_op_inputs(inputs),
+            OpCategory::Binary(metadata) => serialize_inputs_binary_op(inputs, metadata),
+            OpCategory::Unary() => serialize_inputs_element_wise(inputs),
+            OpCategory::Reduce(metadata) => {
+                if let Some(meta) = metadata.as_ref() {
+                    serialize_inputs_reduce_nd(inputs, meta)
+                } else {
+                    serialize_inputs_element_wise(inputs)
+                }
+            }
         };
 
         match cairo_runner.run(self.sierra_file.clone(), inputs) {
