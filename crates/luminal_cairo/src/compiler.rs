@@ -7,6 +7,7 @@ use luminal::prelude::*;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::{info, debug};
 
 #[derive(Default)]
 pub struct CairoCompiler {
@@ -25,14 +26,19 @@ impl Compiler for CairoCompiler {
     type Output = Result<(), CairoCompilerError>;
 
     fn compile<To: ToIdsMut>(&self, graph: &mut Graph, mut ids: To) -> Self::Output {
+        info!("Starting CairoCompiler compilation");
+        debug!("Initial graph structure: {:?}", graph);
+
         for node in graph.node_indices().collect::<Vec<_>>() {
             let op = graph.node_weight(node).unwrap();
+            debug!("Processing node {:?} with operation {:?}", node, op);
 
-            // Binary
+            // Binary ops
             if op.as_any().is::<Add>() {
+                debug!("Compiling Add operation");
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.sierra.json", "add"));
+                    .join("add.sierra.json");
                 compile_binary(
                     graph,
                     node,
@@ -41,9 +47,10 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             } else if op.as_any().is::<Mul>() {
+                debug!("Compiling Mul operation");
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.sierra.json", "mul"));
+                    .join("mul.sierra.json");
                 compile_binary(
                     graph,
                     node,
@@ -52,9 +59,10 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             } else if op.as_any().is::<Mod>() {
+                debug!("Compiling Mod operation");
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.sierra.json", "rem"));
+                    .join("rem.sierra.json");
                 compile_binary(
                     graph,
                     node,
@@ -63,9 +71,10 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             } else if op.as_any().is::<LessThan>() {
+                debug!("Compiling LessThan operation");
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.sierra.json", "lt"));
+                    .join("lt.sierra.json");
                 compile_binary(
                     graph,
                     node,
@@ -74,11 +83,12 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             }
-            // Unary
+            // Unary ops
             else if op.as_any().is::<Log2>() {
+                debug!("Compiling Log2 operation");
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.sierra.json", "log2"));
+                    .join("log2.sierra.json");
                 compile_unary(
                     graph,
                     node,
@@ -87,9 +97,10 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             } else if op.as_any().is::<Exp2>() {
+                debug!("Compiling Exp2 operation");
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.sierra.json", "exp2"));
+                    .join("exp2.sierra.json");
                 compile_unary(
                     graph,
                     node,
@@ -98,9 +109,10 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             } else if op.as_any().is::<Sin>() {
+                debug!("Compiling Sin operation");
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.sierra.json", "sin"));
+                    .join("sin.sierra.json");
                 compile_unary(
                     graph,
                     node,
@@ -109,9 +121,10 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             } else if op.as_any().is::<Sqrt>() {
+                debug!("Compiling Sqrt operation");
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.sierra.json", "sqrt"));
+                    .join("sqrt.sierra.json");
                 compile_unary(
                     graph,
                     node,
@@ -120,9 +133,10 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             } else if op.as_any().is::<Recip>() {
+                debug!("Compiling Recip operation");
                 let sierra_file = PathBuf::from_str(COMPILED_CAIRO_PATH)
                     .unwrap()
-                    .join(format!("{}.sierra.json", "recip"));
+                    .join("recip.sierra.json");
                 compile_unary(
                     graph,
                     node,
@@ -131,8 +145,9 @@ impl Compiler for CairoCompiler {
                     Arc::new(self.runner_config.clone()),
                 )?;
             }
-            // Reduce
+            // Reduce ops
             else if op.as_any().is::<SumReduce>() {
+                debug!("Compiling SumReduce operation");
                 let axis = op
                     .as_any()
                     .downcast_ref::<SumReduce>()
@@ -142,7 +157,7 @@ impl Compiler for CairoCompiler {
                 let srcs = graph.get_sources(node);
                 if srcs.len() != 1 {
                     return Err(CairoCompilerError::UnsupportedOperation(
-                        "Unary operation must have exactly 1 input".to_string(),
+                        "SumReduce operation must have exactly 1 input".to_string(),
                     ));
                 }
 
@@ -151,11 +166,11 @@ impl Compiler for CairoCompiler {
                 let sierra_file = if shape.len() == 1 {
                     PathBuf::from_str(COMPILED_CAIRO_PATH)
                         .unwrap()
-                        .join(format!("{}.sierra.json", "sum_reduce_1d"))
+                        .join("sum_reduce_1d.sierra.json")
                 } else {
                     PathBuf::from_str(COMPILED_CAIRO_PATH)
                         .unwrap()
-                        .join(format!("{}.sierra.json", "sum_reduce_nd"))
+                        .join("sum_reduce_nd.sierra.json")
                 };
 
                 compile_reduce(
@@ -169,16 +184,17 @@ impl Compiler for CairoCompiler {
                     &shape,
                 )?;
             } else if op.as_any().is::<MaxReduce>() {
+                debug!("Compiling MaxReduce operation");
                 let axis = op
                     .as_any()
                     .downcast_ref::<MaxReduce>()
-                    .map(|sum_reduce| sum_reduce.0)
+                    .map(|max_reduce| max_reduce.0)
                     .unwrap();
 
                 let srcs = graph.get_sources(node);
                 if srcs.len() != 1 {
                     return Err(CairoCompilerError::UnsupportedOperation(
-                        "Unary operation must have exactly 1 input".to_string(),
+                        "MaxReduce operation must have exactly 1 input".to_string(),
                     ));
                 }
 
@@ -187,11 +203,11 @@ impl Compiler for CairoCompiler {
                 let sierra_file = if shape.len() == 1 {
                     PathBuf::from_str(COMPILED_CAIRO_PATH)
                         .unwrap()
-                        .join(format!("{}.sierra.json", "max_reduce_1d"))
+                        .join("max_reduce_1d.sierra.json")
                 } else {
                     PathBuf::from_str(COMPILED_CAIRO_PATH)
                         .unwrap()
-                        .join(format!("{}.sierra.json", "max_reduce_nd"))
+                        .join("max_reduce_nd.sierra.json")
                 };
 
                 compile_reduce(
@@ -205,6 +221,7 @@ impl Compiler for CairoCompiler {
                     &shape,
                 )?;
             } else if op.as_any().is::<Contiguous>() {
+                debug!("Processing Contiguous operation");
                 let srcs = graph.get_sources(node);
                 let new_op = graph
                     .add_op(luminal::op::Contiguous)
@@ -216,10 +233,15 @@ impl Compiler for CairoCompiler {
                 remap(node, new_op, &mut ids, graph);
 
                 graph.remove_node(node);
-
-                continue;
+            } else {
+                return Err(CairoCompilerError::UnsupportedOperation(
+                    format!("Unsupported operation: {:?}", op),
+                ));
             }
         }
+
+        info!("CairoCompiler compilation completed");
+        debug!("Final graph structure: {:?}", graph);
 
         Ok(())
     }

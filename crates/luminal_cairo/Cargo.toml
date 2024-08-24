@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 luminal = { path = "../.." }
+luminal_nn = {path="../../crates/luminal_nn"}
 cairo-vm = { git = "https://github.com/lambdaclass/cairo-vm.git", rev = "v1.0.1", features = [
     "std",
     "cairo-1-hints",
@@ -23,3 +24,4 @@ bincode = { version = "2.0.0-rc.3", default-features = false, features = [
 ] }
 lazy_static = "1.5.0"
 itertools = "0.13.0"
+tracing-subscriber = "0.3.18"
