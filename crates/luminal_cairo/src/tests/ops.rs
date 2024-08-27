@@ -31,62 +31,62 @@ unary_test!(|a| a.exp2(), |a| (a * 2_f32.ln()).exp(), test_exp2, f32);
 
 // // =============== BINARY ===============
 
-// binary_test!(|a, b| a + b, |a, b| a + b, test_add, f32);
-// binary_test!(|a, b| a - b, |a, b| a - b, test_sub, f32);
-// binary_test!(|a, b| a * b, |a, b| a * b, test_mul, f32);
-// binary_test!(|a, b| a / b, |a, b| a / b, test_div, f32);
+binary_test!(|a, b| a + b, |a, b| a + b, test_add, f32);
+binary_test!(|a, b| a - b, |a, b| a - b, test_sub, f32);
+binary_test!(|a, b| a * b, |a, b| a * b, test_mul, f32);
+binary_test!(|a, b| a / b, |a, b| a / b, test_div, f32);
 // binary_test!(
 //     |a, b| a % b,
 //     |a, b| a.clone() - ((a / b.clone()).to_dtype::<i32>().to_dtype::<f32>() * b),
 //     test_mod,
 //     f32
 // );
-// binary_test!(|a, b| a.min(b), |a, b| a.minimum(b), test_min, f32);
-// binary_test!(|a, b| a.max(b), |a, b| a.maximum(b), test_max, f32);
+binary_test!(|a, b| a.min(b), |a, b| a.minimum(b), test_min, f32);
+binary_test!(|a, b| a.max(b), |a, b| a.maximum(b), test_max, f32);
 
 // // =============== MOVEMENT ===============
 
-// #[test]
-// fn test_contiguous() {
-//     let mut cx = Graph::new();
-//     let data = random_vec(12);
-//     let a = cx.tensor((3, 4)).set(data.clone());
-//     let mut b = a.permute((1, 0)).reshape((12, 1)).retrieve();
-//     let _ = cx.compile(CairoCompiler::default(), &mut b);
-//     cx.execute();
+#[test]
+fn test_contiguous() {
+    let mut cx = Graph::new();
+    let data = random_vec(12);
+    let a = cx.tensor((3, 4)).set(data.clone());
+    let mut b = a.permute((1, 0)).reshape((12, 1)).retrieve();
+    let _ = cx.compile(CairoCompiler::default(), &mut b);
+    cx.execute();
 
-//     let d_dev = Cpu::default();
-//     let d_a = d_dev.tensor_from_vec(data, (DConst::<3>, DConst::<4>));
-//     let d_b = d_a.permute::<Rank2<4, 3>, _>().reshape::<Rank2<12, 1>>();
+    let d_dev = Cpu::default();
+    let d_a = d_dev.tensor_from_vec(data, (DConst::<3>, DConst::<4>));
+    let d_b = d_a.permute::<Rank2<4, 3>, _>().reshape::<Rank2<12, 1>>();
 
-//     assert_close(&b.data(), &d_b.as_vec());
-// }
+    assert_close(&b.data(), &d_b.as_vec());
+}
 
 // // =============== REDUCE ===============
 
-// #[test]
-// fn test_sum_reduce() {
-//     let mut cx = Graph::new();
-//     let data = random_vec(4 * 4096);
-//     let a = cx.tensor((1, 4, 4096));
-//     a.set(data.clone());
-//     let mut b = a.sum_reduce(1).retrieve();
-//     let mut c = a.sum_reduce(0).retrieve();
-//     let mut d = a.sum_reduce(2).retrieve();
+#[test]
+fn test_sum_reduce() {
+    let mut cx = Graph::new();
+    let data = random_vec(4 * 4096);
+    let a = cx.tensor((1, 4, 4096));
+    a.set(data.clone());
+    let mut b = a.sum_reduce(1).retrieve();
+    let mut c = a.sum_reduce(0).retrieve();
+    let mut d = a.sum_reduce(2).retrieve();
 
-//     let _ = cx.compile(CairoCompiler::default(), (&mut b, &mut c, &mut d));
-//     cx.execute();
+    let _ = cx.compile(CairoCompiler::default(), (&mut b, &mut c, &mut d));
+    cx.execute();
 
-//     let d_dev = Cpu::default();
-//     let d_a = d_dev.tensor_from_vec(data, (DConst::<1>, DConst::<4>, DConst::<4096>));
-//     let d_b = d_a.clone().sum::<_, DAxis<1>>();
-//     let d_c = d_a.clone().sum::<_, DAxis<0>>();
-//     let d_d = d_a.sum::<_, DAxis<2>>();
+    let d_dev = Cpu::default();
+    let d_a = d_dev.tensor_from_vec(data, (DConst::<1>, DConst::<4>, DConst::<4096>));
+    let d_b = d_a.clone().sum::<_, DAxis<1>>();
+    let d_c = d_a.clone().sum::<_, DAxis<0>>();
+    let d_d = d_a.sum::<_, DAxis<2>>();
 
-//     assert_close(&b.data(), &d_b.as_vec());
-//     assert_close(&c.data(), &d_c.as_vec());
-//     assert_close(&d.data(), &d_d.as_vec());
-// }
+    assert_close(&b.data(), &d_b.as_vec());
+    assert_close(&c.data(), &d_c.as_vec());
+    assert_close(&d.data(), &d_d.as_vec());
+}
 
 // #[test]
 // fn test_max_reduce() {
@@ -112,21 +112,21 @@ unary_test!(|a| a.exp2(), |a| (a * 2_f32.ln()).exp(), test_exp2, f32);
 //     assert_close(&d.data(), &d_d.as_vec());
 // }
 
-// #[test]
-// fn test_mean_reduce() {
-//     let data = random_vec(40960);
-//     let mut cx = Graph::new();
-//     let a = cx.tensor((1, 10, 4096)).set(data.clone());
-//     let mut b = a.mean_reduce(2).retrieve();
+#[test]
+fn test_mean_reduce() {
+    let data = random_vec(40960);
+    let mut cx = Graph::new();
+    let a = cx.tensor((1, 10, 4096)).set(data.clone());
+    let mut b = a.mean_reduce(2).retrieve();
 
-//     let _ = cx.compile(CairoCompiler::default(), &mut b);
-//     cx.execute();
+    let _ = cx.compile(CairoCompiler::default(), &mut b);
+    cx.execute();
 
-//     let d_dev = Cpu::default();
-//     let d_a = d_dev.tensor_from_vec(data, (DConst::<1>, DConst::<10>, DConst::<4096>));
-//     let d_b = d_a.mean::<_, DAxis<2>>();
-//     assert_close(&b.data(), &d_b.as_vec());
-// }
+    let d_dev = Cpu::default();
+    let d_a = d_dev.tensor_from_vec(data, (DConst::<1>, DConst::<10>, DConst::<4096>));
+    let d_b = d_a.mean::<_, DAxis<2>>();
+    assert_close(&b.data(), &d_b.as_vec());
+}
 
 // // =============== MATMUL ===============
 
@@ -376,63 +376,63 @@ unary_test!(|a| a.exp2(), |a| (a * 2_f32.ln()).exp(), test_exp2, f32);
 //     assert_close(&b.data(), &d_b.as_vec());
 // }
 
-// #[test]
-// fn test_pool_1d_dims() {
-//     let mut cx = Graph::new();
+#[test]
+fn test_pool_1d_dims() {
+    let mut cx = Graph::new();
 
-//     let inp1 = cx.tensor((4, 4)).set(vec![
-//         1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16.,
-//     ]);
-//     // Stride 1
-//     let mut out1 = inp1.pool_last_dim(3, 1, 1).retrieve();
+    let inp1 = cx.tensor((4, 4)).set(vec![
+        1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16.,
+    ]);
+    // Stride 1
+    let mut out1 = inp1.pool_last_dim(3, 1, 1).retrieve();
 
-//     let _ = cx.compile(<CairoCompiler>::default(), &mut out1);
+    let _ = cx.compile(<CairoCompiler>::default(), &mut out1);
 
-//     cx.execute();
+    cx.execute();
 
-//     assert_exact(
-//         &out1.data(),
-//         &[
-//             1., 2., 3., 2., 3., 4., 5., 6., 7., 6., 7., 8., 9., 10., 11., 10., 11., 12., 13., 14.,
-//             15., 14., 15., 16.,
-//         ],
-//     );
-// }
+    assert_exact(
+        &out1.data(),
+        &[
+            1., 2., 3., 2., 3., 4., 5., 6., 7., 6., 7., 8., 9., 10., 11., 10., 11., 12., 13., 14.,
+            15., 14., 15., 16.,
+        ],
+    );
+}
 
-// #[test]
-// fn test_pool_2d() {
-//     let mut cx = Graph::new();
+#[test]
+fn test_pool_2d() {
+    let mut cx = Graph::new();
 
-//     let inp1 = cx.tensor((4, 4)).set(vec![
-//         1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16.,
-//     ]);
-//     // 3x3 kernel
-//     let mut out1 = inp1
-//         // Pool first dim first by moving it to end
-//         .permute((1, 0))
-//         .pool_last_dim(3, 1, 1)
-//         // Now move other dim to end
-//         .permute((1, 2, 0))
-//         .pool_last_dim(3, 1, 1)
-//         // Now swap middle two dims
-//         .permute((0, 2, 1, 3))
-//         // Now merge both pooled dimensions
-//         .reshape((4, 3, 3))
-//         .retrieve();
+    let inp1 = cx.tensor((4, 4)).set(vec![
+        1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16.,
+    ]);
+    // 3x3 kernel
+    let mut out1 = inp1
+        // Pool first dim first by moving it to end
+        .permute((1, 0))
+        .pool_last_dim(3, 1, 1)
+        // Now move other dim to end
+        .permute((1, 2, 0))
+        .pool_last_dim(3, 1, 1)
+        // Now swap middle two dims
+        .permute((0, 2, 1, 3))
+        // Now merge both pooled dimensions
+        .reshape((4, 3, 3))
+        .retrieve();
 
-//     let _ = cx.compile(<CairoCompiler>::default(), &mut out1);
+    let _ = cx.compile(<CairoCompiler>::default(), &mut out1);
 
-//     cx.execute();
+    cx.execute();
 
-//     assert_exact(
-//         &out1.data(),
-//         &[
-//             1.00, 2.00, 3.00, 5.00, 6.00, 7.00, 9.00, 10.00, 11.00, 2.00, 3.00, 4.00, 6.00, 7.00,
-//             8.00, 10.00, 11.00, 12.00, 5.00, 6.00, 7.00, 9.00, 10.00, 11.00, 13.00, 14.00, 15.00,
-//             6.00, 7.00, 8.00, 10.00, 11.00, 12.00, 14.00, 15.00, 16.00,
-//         ],
-//     );
-// }
+    assert_exact(
+        &out1.data(),
+        &[
+            1.00, 2.00, 3.00, 5.00, 6.00, 7.00, 9.00, 10.00, 11.00, 2.00, 3.00, 4.00, 6.00, 7.00,
+            8.00, 10.00, 11.00, 12.00, 5.00, 6.00, 7.00, 9.00, 10.00, 11.00, 13.00, 14.00, 15.00,
+            6.00, 7.00, 8.00, 10.00, 11.00, 12.00, 14.00, 15.00, 16.00,
+        ],
+    );
+}
 
 // #[test]
 // fn test_pool_1d_dilation() {
