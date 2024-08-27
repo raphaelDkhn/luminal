@@ -13,7 +13,7 @@ use rustc_hash::FxHashMap;
 /// A tensor with data. The data can be anything that implements the Data trait
 #[derive(Debug, Clone)]
 pub struct Tensor {
-    data: Box<dyn Data>,
+    pub data: Box<dyn Data>,
 }
 
 impl Tensor {
@@ -51,6 +51,7 @@ impl Data for Vec<f32> {
 }
 
 /// Either an owned or borrowed tensor that gets consumed by ops
+#[derive(Debug)]
 pub enum InputTensor<'a> {
     /// An owned tensor
     Owned(Tensor),

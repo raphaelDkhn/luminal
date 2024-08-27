@@ -10,8 +10,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "orion_data_structures"
+version = "0.1.0"
+dependencies = [
+ "orion_numbers",
+]
+
+[[package]]
 name = "orion_dl"
 version = "0.1.0"
+dependencies = [
+ "orion_data_structures",
+ "orion_numbers",
+]
 
 [[package]]
 name = "orion_numbers"

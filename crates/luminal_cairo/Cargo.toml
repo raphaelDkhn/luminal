@@ -31,3 +31,4 @@ paste = "1.0.15"
 rand = "0.8.5"
 dfdx = { version = "0.13" }
 candle-core = "0.5.0"
+ctor = "0.2.8"

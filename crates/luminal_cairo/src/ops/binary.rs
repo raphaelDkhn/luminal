@@ -5,6 +5,7 @@ use std::sync::Arc;
 use super::{CairoOperation, OpCategory};
 use crate::precomputing::binary::precompute_binary_op_metadata;
 use crate::{cairo_runner::CairoRunnerConfig, CairoCompilerError};
+use tracing::debug;
 
 #[derive(Debug)]
 pub(crate) struct BinaryOpMetadata {
@@ -27,9 +28,13 @@ pub(crate) fn compile_binary<To: ToIdsMut>(
         ));
     }
 
+    debug!("Binary op input shapes: {:?}, {:?}", srcs[0].2, srcs[1].2);
+
     // Precompute indices to avoid computing it in Cairo run-time
-    let (lhs_indices, rhs_indices) =
-        precompute_binary_op_metadata(&srcs[0].2.shape_usize(), &&srcs[1].2.shape_usize());
+    let (lhs_indices, rhs_indices) = precompute_binary_op_metadata(&srcs[0].2, &srcs[1].2);
+
+    debug!("Precomputed lhs_indices: {:?}", lhs_indices);
+    debug!("Precomputed rhs_indices: {:?}", rhs_indices);
 
     // Create a new node with CairoOperation
     let new_op = graph

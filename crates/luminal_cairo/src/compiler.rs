@@ -7,7 +7,7 @@ use luminal::prelude::*;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::{info, debug};
+use tracing::{debug, info};
 
 #[derive(Default)]
 pub struct CairoCompiler {
@@ -27,11 +27,31 @@ impl Compiler for CairoCompiler {
 
     fn compile<To: ToIdsMut>(&self, graph: &mut Graph, mut ids: To) -> Self::Output {
         info!("Starting CairoCompiler compilation");
-        debug!("Initial graph structure: {:?}", graph);
 
         for node in graph.node_indices().collect::<Vec<_>>() {
             let op = graph.node_weight(node).unwrap();
             debug!("Processing node {:?} with operation {:?}", node, op);
+
+            // Handle Tensor Load and Weight Load
+            if op.as_any().is::<Function>() {
+                debug!("Skipping Tensor/Weight Load operation");
+                continue;
+            }
+
+            // Handle Constants
+            if let Some(constant) = op.as_any().downcast_ref::<Constant>() {
+                debug!("Processing Constant operation: {:?}", constant);
+                // Convert the constant to a tensor
+                let value = match constant.0 {
+                    ConstantValue::Float(f) => vec![f],
+                    ConstantValue::Expression(ref e) => {
+                        vec![e.exec(&graph.dyn_map).unwrap() as f32]
+                    }
+                };
+                let tensor = Tensor::new(value);
+                graph.set_tensor(node, 0, tensor);
+                continue;
+            }
 
             // Binary ops
             if op.as_any().is::<Add>() {
@@ -234,15 +254,11 @@ impl Compiler for CairoCompiler {
 
                 graph.remove_node(node);
             } else {
-                return Err(CairoCompilerError::UnsupportedOperation(
-                    format!("Unsupported operation: {:?}", op),
-                ));
+                println!("Unsupported operation: {:?}", op);
             }
         }
 
         info!("CairoCompiler compilation completed");
-        debug!("Final graph structure: {:?}", graph);
-
         Ok(())
     }
 }

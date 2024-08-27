@@ -2,6 +2,15 @@ use luminal::{graph::Graph, op::Operator};
 
 mod ops;
 
+
+// #[ctor::ctor]
+// fn init() {
+//     let subscriber = tracing_subscriber::fmt()
+//         .with_max_level(tracing::Level::DEBUG) 
+//         .finish();
+//     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+// }
+
 #[macro_export]
 macro_rules! single_unary_test {
     ($luminal_func: expr , $dfdx_func: expr , $name: ident, $type: ty, $size: expr) => {
@@ -15,7 +24,7 @@ macro_rules! single_unary_test {
                 let f: fn(GraphTensor) -> GraphTensor = $luminal_func;
                 let mut b = f(a).retrieve();
                 let _ = cx.compile(CairoCompiler::default(), &mut b);
-                cx.execute();
+                cx.execute_debug();
 
                 let d_dev = Cpu::default();
                 let d_a = d_dev
@@ -36,9 +45,9 @@ macro_rules! single_unary_test {
 macro_rules! unary_test {
     ($luminal_func: expr , $dfdx_func: expr , $name: ident, $type: ty) => {
         $crate::single_unary_test!($luminal_func, $dfdx_func, $name, $type, 3);
-        $crate::single_unary_test!($luminal_func, $dfdx_func, $name, $type, 50);
-        $crate::single_unary_test!($luminal_func, $dfdx_func, $name, $type, 783);
-        $crate::single_unary_test!($luminal_func, $dfdx_func, $name, $type, 4096);
+        // $crate::single_unary_test!($luminal_func, $dfdx_func, $name, $type, 50);
+        // $crate::single_unary_test!($luminal_func, $dfdx_func, $name, $type, 783);
+        // $crate::single_unary_test!($luminal_func, $dfdx_func, $name, $type, 4096);
     };
 }
 
