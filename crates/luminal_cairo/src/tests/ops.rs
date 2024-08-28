@@ -35,12 +35,12 @@ binary_test!(|a, b| a + b, |a, b| a + b, test_add, f32);
 binary_test!(|a, b| a - b, |a, b| a - b, test_sub, f32);
 binary_test!(|a, b| a * b, |a, b| a * b, test_mul, f32);
 binary_test!(|a, b| a / b, |a, b| a / b, test_div, f32);
-// binary_test!(
-//     |a, b| a % b,
-//     |a, b| a.clone() - ((a / b.clone()).to_dtype::<i32>().to_dtype::<f32>() * b),
-//     test_mod,
-//     f32
-// );
+binary_test!(
+    |a, b| a % b,
+    |a, b| a.clone() - ((a / b.clone()).to_dtype::<i32>().to_dtype::<f32>() * b),
+    test_mod,
+    f32
+);
 binary_test!(|a, b| a.min(b), |a, b| a.minimum(b), test_min, f32);
 binary_test!(|a, b| a.max(b), |a, b| a.maximum(b), test_max, f32);
 

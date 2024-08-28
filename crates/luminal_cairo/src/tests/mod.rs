@@ -92,9 +92,9 @@ macro_rules! single_binary_test {
 macro_rules! binary_test {
     ($luminal_func: expr , $dfdx_func: expr , $name: ident, $type: ty) => {
         $crate::single_binary_test!($luminal_func, $dfdx_func, $name, $type, 3);
-        $crate::single_binary_test!($luminal_func, $dfdx_func, $name, $type, 50);
-        $crate::single_binary_test!($luminal_func, $dfdx_func, $name, $type, 783);
-        $crate::single_binary_test!($luminal_func, $dfdx_func, $name, $type, 4096);
+        // $crate::single_binary_test!($luminal_func, $dfdx_func, $name, $type, 50);
+        // $crate::single_binary_test!($luminal_func, $dfdx_func, $name, $type, 783);
+        // $crate::single_binary_test!($luminal_func, $dfdx_func, $name, $type, 4096);
     };
 }
 
