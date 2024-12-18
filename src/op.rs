@@ -138,6 +138,22 @@ pub enum ConstantValue {
     Float(f32),
 }
 
+impl From<f32> for ConstantValue {
+    fn from(value: f32) -> Self {
+        ConstantValue::Float(value)
+    }
+}
+impl From<f64> for ConstantValue {
+    fn from(value: f64) -> Self {
+        ConstantValue::Float(value as f32)
+    }
+}
+impl<T: Into<Expression>> From<T> for ConstantValue {
+    fn from(value: T) -> Self {
+        ConstantValue::Expression(value.into())
+    }
+}
+
 /// Produces a single number constant from an expression or a float
 #[derive(Clone, PartialEq)]
 pub struct Constant(pub ConstantValue, pub *const FxHashMap<char, usize>);
@@ -156,7 +172,7 @@ impl Operator for Constant {
     fn process(&mut self, _: Vec<(InputTensor, ShapeTracker)>) -> Vec<Tensor> {
         vec![Tensor::new(vec![match &self.0 {
             ConstantValue::Expression(e) => {
-                e.exec(unsafe { self.1.as_ref().unwrap() }).unwrap() as f32
+                e.exec_float(unsafe { self.1.as_ref().unwrap() }).unwrap() as f32
             }
             ConstantValue::Float(f) => *f,
         }])]
@@ -388,7 +404,8 @@ fn get_index(
     index: usize,
 ) -> f32 {
     if val.exec_single_var_stack(index, stack) != 0 {
-        data[ind.exec_single_var_stack(index, stack)]
+        let i = ind.exec_single_var_stack(index, stack);
+        data[i]
     } else {
         0.0
     }

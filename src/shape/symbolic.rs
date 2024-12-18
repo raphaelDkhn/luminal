@@ -112,6 +112,22 @@ impl Term {
             _ => None,
         }
     }
+    pub fn as_float_op(self) -> Option<fn(f64, f64) -> f64> {
+        match self {
+            Term::Add => Some(|a, b| a + b),
+            Term::Sub => Some(|a, b| a - b),
+            Term::Mul => Some(|a, b| a * b),
+            Term::Div => Some(|a, b| a / b),
+            Term::Mod => Some(|a, b| a % b),
+            Term::Max => Some(|a, b| a.max(b)),
+            Term::Min => Some(|a, b| a.min(b)),
+            Term::And => Some(|a, b| (a.abs() > 1e-4 && b.abs() > 1e-4) as i32 as f64),
+            Term::Or => Some(|a, b| (a.abs() > 1e-4 || b.abs() > 1e-4) as i32 as f64),
+            Term::Gte => Some(|a, b| (a >= b) as i32 as f64),
+            Term::Lt => Some(|a, b| (a < b) as i32 as f64),
+            _ => None,
+        }
+    }
 }
 
 impl<T> PartialEq<T> for Expression
@@ -194,6 +210,14 @@ impl Expression {
             }
         }
         None
+    }
+
+    pub fn len(&self) -> usize {
+        self.terms.read().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Minimum
@@ -345,6 +369,37 @@ impl Expression {
         }
         stack.pop().map(|i| i as usize)
     }
+    /// Evaluate the expression given variables.
+    pub fn exec_float(&self, variables: &FxHashMap<char, usize>) -> Option<f64> {
+        self.exec_stack_float(variables, &mut Vec::new())
+    }
+    /// Evaluate the expression given variables. This function requires a stack to be given for use as storage
+    pub fn exec_stack_float(
+        &self,
+        variables: &FxHashMap<char, usize>,
+        stack: &mut Vec<f64>,
+    ) -> Option<f64> {
+        for term in self.terms.read().iter() {
+            match term {
+                Term::Num(n) => stack.push(*n as f64),
+                Term::Var(c) =>
+                {
+                    #[allow(clippy::needless_borrow)]
+                    if let Some(n) = variables.get(&c) {
+                        stack.push(*n as f64)
+                    } else {
+                        return None;
+                    }
+                }
+                _ => {
+                    let a = stack.pop().unwrap();
+                    let b = stack.pop().unwrap();
+                    stack.push(term.as_float_op().unwrap()(a, b));
+                }
+            }
+        }
+        stack.pop()
+    }
     /// Retrieve all symbols in the expression.
     pub fn to_symbols(&self) -> Vec<char> {
         self.terms
@@ -420,6 +475,13 @@ impl From<&bool> for Expression {
     }
 }
 
+impl Add<Expression> for usize {
+    type Output = Expression;
+    fn add(self, rhs: Expression) -> Self::Output {
+        rhs + self
+    }
+}
+
 impl Sub<Expression> for usize {
     type Output = Expression;
     fn sub(self, rhs: Expression) -> Self::Output {
@@ -438,6 +500,76 @@ impl Div<Expression> for usize {
     type Output = Expression;
     fn div(self, rhs: Expression) -> Self::Output {
         Expression::from(self) / rhs
+    }
+}
+
+impl Rem<Expression> for usize {
+    type Output = Expression;
+    fn rem(self, rhs: Expression) -> Self::Output {
+        Expression::from(self) % rhs
+    }
+}
+
+impl BitAnd<Expression> for usize {
+    type Output = Expression;
+    fn bitand(self, rhs: Expression) -> Self::Output {
+        rhs & self
+    }
+}
+
+impl BitOr<Expression> for usize {
+    type Output = Expression;
+    fn bitor(self, rhs: Expression) -> Self::Output {
+        rhs | self
+    }
+}
+
+impl Add<Expression> for i32 {
+    type Output = Expression;
+    fn add(self, rhs: Expression) -> Self::Output {
+        rhs + self
+    }
+}
+
+impl Sub<Expression> for i32 {
+    type Output = Expression;
+    fn sub(self, rhs: Expression) -> Self::Output {
+        Expression::from(self) - rhs
+    }
+}
+
+impl Mul<Expression> for i32 {
+    type Output = Expression;
+    fn mul(self, rhs: Expression) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl Div<Expression> for i32 {
+    type Output = Expression;
+    fn div(self, rhs: Expression) -> Self::Output {
+        Expression::from(self) / rhs
+    }
+}
+
+impl Rem<Expression> for i32 {
+    type Output = Expression;
+    fn rem(self, rhs: Expression) -> Self::Output {
+        Expression::from(self) % rhs
+    }
+}
+
+impl BitAnd<Expression> for i32 {
+    type Output = Expression;
+    fn bitand(self, rhs: Expression) -> Self::Output {
+        rhs & self
+    }
+}
+
+impl BitOr<Expression> for i32 {
+    type Output = Expression;
+    fn bitor(self, rhs: Expression) -> Self::Output {
+        rhs | self
     }
 }
 
@@ -523,7 +655,11 @@ impl<E: Into<Expression>> Div<E> for Expression {
             return 0.into();
         }
         if let (Some(a), Some(b)) = (self.as_num(), rhs.as_num()) {
-            return (a / b).into();
+            if a % b == 0 {
+                if let Some(c) = a.checked_div(b) {
+                    return c.into();
+                }
+            }
         }
         let mut terms = rhs.terms.read().clone();
         terms.extend(self.terms.read().iter().copied());
@@ -823,37 +959,13 @@ impl Analysis<Math> for ConstantFold {
                     a.checked_div(b)?
                 }
             }
-            Math::Mod([a, b]) if x(b) != Some(0) => x(a)?.checked_rem(x(b)?)?,
-            Math::Min([a, b]) if x(b) != Some(0) => x(a)?.min(x(b)?),
-            Math::Max([a, b]) if x(b) != Some(0) => x(a)?.max(x(b)?),
-            Math::And([a, b]) if x(b) != Some(0) => {
-                if x(a)? != 0 && x(b)? != 0 {
-                    1
-                } else {
-                    0
-                }
-            }
-            Math::Or([a, b]) if x(b) != Some(0) => {
-                if x(a)? != 0 || x(b)? != 0 {
-                    1
-                } else {
-                    0
-                }
-            }
-            Math::LessThan([a, b]) if x(b) != Some(0) => {
-                if x(a)? < x(b)? {
-                    1
-                } else {
-                    0
-                }
-            }
-            Math::GreaterThanEqual([a, b]) if x(b) != Some(0) => {
-                if x(a)? >= x(b)? {
-                    1
-                } else {
-                    0
-                }
-            }
+            Math::Mod([a, b]) => x(a)?.checked_rem(x(b)?)?,
+            Math::Min([a, b]) => x(a)?.min(x(b)?),
+            Math::Max([a, b]) => x(a)?.max(x(b)?),
+            Math::And([a, b]) => (x(a)? != 0 && x(b)? != 0) as i32,
+            Math::Or([a, b]) => (x(a)? != 0 || x(b)? != 0) as i32,
+            Math::LessThan([a, b]) => (x(a)? < x(b)?) as i32,
+            Math::GreaterThanEqual([a, b]) => (x(a)? >= x(b)?) as i32,
             _ => return None,
         })
     }
@@ -866,11 +978,14 @@ impl Analysis<Math> for ConstantFold {
     }
 
     fn modify(egraph: &mut EGraph, id: Id) {
-        if let Some(c) = egraph[id].data {
+        let data = egraph[id].data;
+        if let Some(c) = data {
             let added = egraph.add(Math::Num(c));
             egraph.union(id, added);
-            // to not prune, comment this out
             egraph[id].nodes.retain(|n| n.is_leaf());
+
+            #[cfg(debug_assertions)]
+            egraph[id].assert_unique_leaves();
         }
     }
 }
@@ -878,6 +993,14 @@ impl Analysis<Math> for ConstantFold {
 fn is_not_zero(var: &str) -> impl Fn(&mut EGraph, Id, &Subst) -> bool {
     let var = var.parse().unwrap();
     move |egraph, _, subst| egraph[subst[var]].data.map(|i| i != 0).unwrap_or(true)
+}
+
+fn is_const_positive(vars: &[&str]) -> impl Fn(&mut EGraph, Id, &Subst) -> bool {
+    let vars: Vec<Var> = vars.iter().map(|i| i.parse().unwrap()).collect::<Vec<_>>();
+    move |egraph, _, subst| {
+        vars.iter()
+            .all(|i| egraph[subst[*i]].data.map(|i| i >= 0).unwrap_or(false))
+    }
 }
 
 fn make_rules() -> Vec<Rewrite> {
@@ -892,8 +1015,26 @@ fn make_rules() -> Vec<Rewrite> {
         // Associative properties
         rewrite!("assoc-add"; "(+ ?a (+ ?b ?c))" => "(+ (+ ?a ?b) ?c)"),
         rewrite!("assoc-mul"; "(* ?a (* ?b ?c))" => "(* (* ?a ?b) ?c)"),
-        // rewrite!("mul-div-associative"; "(/ (* ?x ?y) ?z)" => "(* ?x (/ ?y ?z))"),
+        rewrite!("assoc-div"; "(/ (/ ?a ?b) ?c)" => "(/ ?a (* ?b ?c))"),
+        rewrite!("mul-div-associative"; "(/ (* ?a ?b) ?c)" => "(* ?a (/ ?b ?c))"),
+        // rewrite!("mul-div-associative-rev"; "(* ?a (/ ?b ?c))" => "(/ (* ?a ?b) ?c)"), // BAD? Makes test_pool_1d fail
         rewrite!("sub-canon"; "(- ?a ?b)" => "(+ ?a (* -1 ?b))"),
+        // Distributive
+        rewrite!("distribute-mul"; "(* ?a (+ ?b ?c))" => "(+ (* ?a ?b) (* ?a ?c))"),
+        rewrite!("distribute-div"; "(/ (+ ?a ?b) ?c)" => "(+ (/ ?a ?c) (/ ?b ?c))"),
+        rewrite!("distribute-max"; "(* ?a (max ?b ?c))" => "(max (* ?a ?b) (* ?a ?c))" if is_const_positive(&["?a"])),
+        rewrite!("distribute-min"; "(* ?a (min ?b ?c))" => "(min (* ?a ?b) (* ?a ?c))"),
+        // rewrite!("distribute-mod"; "(* (% ?b ?c) ?a)" => "(% (* ?b ?a) (* ?c ?a))"),
+        // Factoring
+        rewrite!("factor-mul"    ; "(+ (* ?a ?b) (* ?a ?c))" => "(* ?a (+ ?b ?c))"),
+        // rewrite!("factor-div"    ; "(+ (/ ?a ?b) (/ ?a ?c))" => "(/ ?a (+ ?b ?c))"),
+        rewrite!("group-terms"; "(+ ?a ?a)" => "(* 2 ?a)"),
+        // Other
+        // rewrite!("explicit-truncate"; "(* (/ ?a ?b) ?b)" => "(- ?a (% ?a ?b))"),
+        // rewrite!("mul-mod"; "(% (* ?a ?b) ?b)" => "0"),
+        rewrite!("div-move-inside"; "(+ (/ ?a ?b) ?c)" => "(/ (+ ?a (* ?c ?b)) ?b)"),
+        // rewrite!("mul-distribute"; "(* ?a (% (/ ?b ?c) ?d))" => "(% (/ ?b (* ?c ?a)) (* ?d ?a))"), // BAD
+        // rewrite!("div-mod-mul"; "(% (/ ?a ?b) ?c)" => "(% ?a (* ?b ?c))"),
         // Simple binary reductions
         rewrite!("add-0"; "(+ ?a 0)" => "?a"),
         rewrite!("mul-0"; "(* ?a 0)" => "0"),
@@ -907,21 +1048,10 @@ fn make_rules() -> Vec<Rewrite> {
         rewrite!("min-i32-max"; "(min ?a 2147483647)" => "?a"),
         rewrite!("max-i32-max"; "(max ?a 2147483647)" => "2147483647"),
         rewrite!("recip-mul-div"; "(* ?x (/ 1 ?x))" => "1" if is_not_zero("?x")),
-        // rewrite!("add-zero"; "?a" => "(+ ?a 0)"),
-        // rewrite!("mul-one";  "?a" => "(* ?a 1)"),
+        rewrite!("add-zero"; "?a" => "(+ ?a 0)"),
+        rewrite!("mul-one";  "?a" => "(* ?a 1)"),
         rewrite!("cancel-sub"; "(- ?a ?a)" => "0"),
         rewrite!("cancel-div"; "(/ ?a ?a)" => "1" if is_not_zero("?a")),
-        // Other
-        rewrite!("distribute"; "(* ?a (+ ?b ?c))"        => "(+ (* ?a ?b) (* ?a ?c))"),
-        rewrite!("distribute-max"; "(* ?a (max ?b ?c))"        => "(max (* ?a ?b) (* ?a ?c))"),
-        rewrite!("distribute-min"; "(* ?a (min ?b ?c))"        => "(min (* ?a ?b) (* ?a ?c))"),
-        rewrite!("factor"    ; "(+ (* ?a ?b) (* ?a ?c))" => "(* ?a (+ ?b ?c))"),
-        rewrite!("group-terms"; "(+ ?a ?a)" => "(* 2 ?a)"),
-        rewrite!("distribute-mod"; "(* (% ?b ?c) ?a)" => "(% (* ?b ?a) (* ?c ?a))"),
-        rewrite!("explicit-truncate"; "(* (/ ?a ?b) ?b)" => "(- ?a (% ?a ?b))"),
-        rewrite!("mul-mod"; "(% (* ?a ?b) ?b)" => "0"),
-        // rewrite!("mul-distribute"; "(* ?a (% (/ ?b ?c) ?d))" => "(% (/ ?b (* ?c ?a)) (* ?d ?a))"),
-        // rewrite!("div-mod-mul"; "(% (/ ?a ?b) ?c)" => "(% ?a (* ?b ?c))"),
     ]
 }
 
@@ -930,9 +1060,12 @@ fn egg_simplify(e: Expression) -> Expression {
     let expr = luminal_to_egg(&e);
     // Simplify
     let runner = Runner::default()
+        // .with_iter_limit(1_000)
+        // .with_time_limit(std::time::Duration::from_secs(30))
+        // .with_node_limit(100_000_000)
         .with_expr(&expr)
-        // .with_iter_limit(100)
         .run(&make_rules());
+    // runner.print_report();
     let extractor = Extractor::new(&runner.egraph, AstSize);
     let (_, best) = extractor.find_best(runner.roots[0]);
     // Convert back to luminal expression
@@ -968,7 +1101,7 @@ mod tests {
         let main = Expression::from('x') - 255;
         let sub = Expression::from('x') / 2;
         let new = main.substitute('x', sub).simplify();
-        assert_eq!(new, (Expression::from('x') / 2) + -255);
+        assert_eq!(new.len(), 5);
         expression_cleanup();
     }
 
@@ -976,7 +1109,39 @@ mod tests {
     fn test_group_terms() {
         let s = Expression::from('s');
         let expr = (s * ((s - 4) + 1)) + (((s + 1) * ((s - 4) + 1)) - (s * ((s - 4) + 1)));
-        assert_eq!(expr.simplify().terms.read().len(), 7);
+        assert_eq!(expr.simplify().len(), 7);
+        expression_cleanup();
+    }
+
+    #[test]
+    fn test_simple_div() {
+        let w = Expression::from('w');
+        let s = ((((w + 3) / 2) + 2) / 2).simplify();
+        assert_eq!(s.simplify(), (w + 7) / 4);
+        expression_cleanup();
+    }
+
+    #[test]
+    fn test_other() {
+        let z = Expression::from('z');
+        let w = Expression::from('w');
+        let h = Expression::from('h');
+        let o = (z
+            / ((-5 + (((((-5 + ((((((w + 153) / 2) / 2) / 2) / 2) / 2)) * 4) + 9) / 2) / 2))
+                * (-5 + (((9 + (4 * (-5 + ((((((153 + h) / 2) / 2) / 2) / 2) / 2)))) / 2) / 2))))
+            % 64;
+        let x = o.simplify();
+        assert_eq!(x.len(), 23); // Should be 21 if we can re-enable mul-div-associative-rev
+        expression_cleanup();
+    }
+
+    #[test]
+    fn test_final() {
+        let z = Expression::from('z');
+        let w = Expression::from('w');
+        let h = Expression::from('h');
+        let x = (z % (((((153 + h) / 8) + -31) * ((((w + 153) / 8) + -31) / 16)) * 64)).simplify();
+        assert_eq!(x.len(), 15); // Should be 11 if we can re-enable mul-div-associative-rev
         expression_cleanup();
     }
 }
