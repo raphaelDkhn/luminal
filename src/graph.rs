@@ -31,9 +31,9 @@ pub struct Graph {
     pub to_retrieve: FxHashMap<NodeIndex, (u8, ShapeTracker)>,
     /// A cached list of nodes to run, source nodes, and view nodes to delete after execution.
     #[allow(clippy::type_complexity)]
-    pub(crate) linearized_graph: Option<Vec<(NodeIndex, Vec<(NodeIndex, u8, ShapeTracker)>)>>,
+    pub linearized_graph: Option<Vec<(NodeIndex, Vec<(NodeIndex, u8, ShapeTracker)>)>>,
     /// Cached consumers (for execution only)
-    consumers_map: Option<FxHashMap<(NodeIndex, u8), usize>>,
+    pub consumers_map: Option<FxHashMap<(NodeIndex, u8), usize>>,
 }
 
 /// A dependency between two nodes
@@ -385,7 +385,7 @@ impl Drop for Graph {
 }
 
 /// Get source tensor array for a node
-fn get_source_tensors<'a>(
+pub fn get_source_tensors<'a>(
     no_delete: &'a FxHashSet<NodeIndex>,
     tensors: *mut FxHashMap<(NodeIndex, u8), Tensor>,
     src_ids: &'a [(NodeIndex, u8, ShapeTracker)],
