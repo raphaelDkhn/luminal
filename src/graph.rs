@@ -138,7 +138,7 @@ impl Graph {
     }
 
     /// Refresh the internally sorted graph
-    pub(crate) fn toposort(&mut self) {
+    pub fn toposort(&mut self) {
         self.linearized_graph = Some(
             petgraph::algo::toposort(&self.graph, None)
                 .unwrap()
