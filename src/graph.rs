@@ -74,6 +74,7 @@ impl Dependency {
 impl Graph {
     /// Create a new graph
     pub fn new() -> Graph {
+        ensure_expression_storage();
         Graph::default()
     }
 

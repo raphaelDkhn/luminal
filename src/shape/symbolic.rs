@@ -16,6 +16,15 @@ thread_local! {
     static EXPRESSION_OWNER: RefCell<Option<Owner<UnsyncStorage>>> = RefCell::new(Some(UnsyncStorage::owner()));
 }
 
+/// Reinitialize the expression storage if it's been cleared
+pub fn ensure_expression_storage() {
+    EXPRESSION_OWNER.with(|cell| {
+        if cell.borrow().is_none() {
+            *cell.borrow_mut() = Some(UnsyncStorage::owner());
+        }
+    });
+}
+
 /// Clean up symbolic expresion storage
 pub fn expression_cleanup() {
     EXPRESSION_OWNER.with(|cell| cell.borrow_mut().take());
